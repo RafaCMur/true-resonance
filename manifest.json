@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "True Resonance",
+  "version": "1.0.0",
+  "description": "YouTube pitch shifting in real-time.",
+  "author": "RafaCMur",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": ["*://*.youtube.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["content_script.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}
