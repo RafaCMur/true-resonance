@@ -2,6 +2,8 @@
 console.log("Content script loaded");
 
 let _observer: MutationObserver;
+let _actualPlaybackRate = 1;
+let _baseFrequency = 440;
 
 // Disable pitch preservation on a video element for all browsers
 function disablePitchPreservation(video: HTMLVideoElement): void {
@@ -19,15 +21,16 @@ function changePlayBackRate(video: HTMLVideoElement, rate: number): void {
   disablePitchPreservation(video);
   video.playbackRate = rate;
   disablePitchPreservation(video);
+  alert("Playback rate changed to: " + rate);
 }
 
 // Handle a node added to the DOM: if it's a video, set playback rate; if it contains videos, do the same
 function handleNewNode(node: Node): void {
   if (node instanceof HTMLVideoElement) {
-    changePlayBackRate(node, 2);
+    changePlayBackRate(node, _actualPlaybackRate);
   } else if (node instanceof Element) {
     node.querySelectorAll("video").forEach((video) => {
-      changePlayBackRate(video, 2);
+      changePlayBackRate(video, _actualPlaybackRate);
     });
   }
 }
@@ -45,25 +48,23 @@ function initVideoObservers(): void {
 
   // Apply changes to any videos already on the page
   document.querySelectorAll("video").forEach((video) => {
-    changePlayBackRate(video, 2);
+    changePlayBackRate(video, _actualPlaybackRate);
   });
 }
 
 // Listen for messages from the background or popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.action === "testAlert") {
-    alert("Hello from content script!");
+  if (message.action === "setPitch") {
+    console.log("Pitch set to: " + message.frequency);
     sendResponse({ success: true });
   }
+
+  if (message.action === "setPlaybackRate") {
+    console.log("Playback rate set to: " + message.frequency);
+    _actualPlaybackRate = message.frequency / _baseFrequency;
+    sendResponse({ success: true });
+    initVideoObservers();
+  }
+
   return true;
 });
-
-// Send a test message to background on load
-function sendTestMessage() {
-  chrome.runtime.sendMessage({ action: "hello" }, (response) => {
-    console.log("Got response:", response);
-  });
-}
-
-sendTestMessage();
-initVideoObservers();
