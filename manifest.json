@@ -17,5 +17,11 @@
   ],
   "action": {
     "default_popup": "popup.html"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["soundtouch-worklet.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }

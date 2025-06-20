@@ -1,16 +1,17 @@
-// Simple background script
-console.log("Background script loaded");
+let _extensionEnabled = false; // disabled by default
 
-// Listen for messages from popup or content script
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message.action === "hello") {
-    // Send response back
-    sendResponse({ response: "Hello from background!" });
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.action === "getEnabled") {
+    // always respond (even right after startup) with our in-memory flag
+    sendResponse({ enabled: _extensionEnabled });
+    return; // sync
   }
-  return true; // Required for async response
-});
 
-// Basic extension setup
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("Extension installed");
+  if (typeof msg.enabled === "boolean") {
+    _extensionEnabled = msg.enabled;
+    sendResponse({ success: true });
+    return;
+  }
+
+  // return true; // <-- only keep this if any of the "other handlers" use sendResponse later
 });
