@@ -1,15 +1,15 @@
 const WORKLET_PATH = chrome.runtime.getURL("soundtouch-worklet.js");
-let _extensionEnabled = true;
+let _extensionEnabled = false; // extension is disabled by default
 let _observer: MutationObserver | null;
 let _isObserving = false;
 let _actualPlaybackRate = 1;
 let _actualPitch = 1; // Pitch offset from base frequency. Example 432 / 440 = 0.98
 let _audioCtx: AudioContext | null = null;
 let _baseFrequency = 440;
-let mode: "pitch" | "rate" = "pitch";
-let isSoundtouchInit = false;
-let soundtouchNode: AudioWorkletNode | null = null;
-let srcNode: MediaElementAudioSourceNode | null = null;
+let _mode: "pitch" | "rate" = "pitch";
+let _isSoundtouchInit = false;
+let _soundtouchNode: AudioWorkletNode | null = null;
+let _srcNode: MediaElementAudioSourceNode | null = null;
 
 function getAudioContext() {
   if (!_audioCtx) {
@@ -21,40 +21,44 @@ function getAudioContext() {
 async function initSoundtouch(video: HTMLVideoElement) {
   const audioCtx = getAudioContext();
 
-  console.log("disconnecting old nodes");
-  // 1. Teardown old graph (always)
-  if (srcNode) srcNode.disconnect();
-  if (soundtouchNode) soundtouchNode.disconnect();
-  srcNode = null;
-  soundtouchNode = null;
-
-  // 2. Initialize the audio context (just once)
-  if (!isSoundtouchInit) {
+  // 1) Worklet can only be loaded once
+  if (!_isSoundtouchInit) {
     try {
       await audioCtx.audioWorklet.addModule(WORKLET_PATH);
-      console.log("(OK) worklet loaded");
     } catch (err) {
       console.log("(ERROR) failed to load worklet", err);
     }
-
-    await audioCtx.resume(); // Make sure the context is running
-    console.log("AudioContext state:", audioCtx.state);
-    isSoundtouchInit = true;
+    await audioCtx.resume();
+    _isSoundtouchInit = true;
   }
 
-  console.log("creating new worklet node");
-  // 3. Create the SoundTouch node
-  soundtouchNode = new AudioWorkletNode(audioCtx, "soundtouch-processor");
-  console.log("node:", soundtouchNode);
-  console.log("pitch param:", soundtouchNode.parameters.get("pitch"));
+  // 2) Only wire up the graph if it doesn’t already exist
+  if (!_srcNode || !_soundtouchNode) {
+    _srcNode = audioCtx.createMediaElementSource(video);
+    _soundtouchNode = new AudioWorkletNode(audioCtx, "soundtouch-processor");
+    _srcNode.connect(_soundtouchNode).connect(audioCtx.destination);
+  }
+}
 
-  console.log("connecting srcNode");
-  // 4. Point the worklet at your <video> element’s audio
-  srcNode = audioCtx.createMediaElementSource(video);
+async function resetSoundTouch(): Promise<void> {
+  // Disconnect old nodes
+  if (_srcNode) _srcNode.disconnect();
+  if (_soundtouchNode) _soundtouchNode.disconnect();
 
-  console.log("connecting to destination");
-  // 5. Wire it up: Video → SoundTouch → speakers
-  srcNode.connect(soundtouchNode).connect(audioCtx.destination);
+  // Close audio context
+  await _audioCtx?.close();
+  _audioCtx = null;
+
+  // Reset variables
+  _isSoundtouchInit = false;
+  _soundtouchNode = null;
+  _srcNode = null;
+}
+
+async function resetPitching(): Promise<void> {
+  _actualPitch = 1;
+  _actualPlaybackRate = 1;
+  applyCurrentSettings();
 }
 
 function enablePitchPreservation(video: HTMLVideoElement): void {
@@ -85,10 +89,9 @@ function changePlayBackRate(video: HTMLVideoElement, rate: number): void {
   disablePitchPreservation(video);
 }
 
-function changePitch(video: HTMLVideoElement, pitch: number): void {
-  console.log(video.id + " " + pitch);
-  if (soundtouchNode && _audioCtx) {
-    soundtouchNode.parameters
+function changePitch(pitch: number): void {
+  if (_soundtouchNode && _audioCtx) {
+    _soundtouchNode.parameters
       .get("pitch")!
       .setValueAtTime(pitch, _audioCtx.currentTime);
   } else {
@@ -99,19 +102,28 @@ function changePitch(video: HTMLVideoElement, pitch: number): void {
 async function tuneVideo(video: HTMLVideoElement): Promise<void> {
   if (!_extensionEnabled) return;
 
-  if (mode === "rate") {
+  if (_mode === "rate") {
     changePlayBackRate(video, _actualPlaybackRate);
   } else {
-    if (!soundtouchNode) {
-      await initSoundtouch(video);
-    }
-    changePitch(video, _actualPitch);
+    await initSoundtouch(video);
+    changePitch(_actualPitch);
   }
+}
+
+async function resetBothModes(video: HTMLVideoElement): Promise<void> {
+  changePlayBackRate(video, 1);
+  changePitch(1);
 }
 
 /** Re-apply the current mode (rate or pitch) to every <video> on the page */
 function applyCurrentSettings(): void {
   document.querySelectorAll("video").forEach(tuneVideo);
+}
+
+function resetAllVideosTune(): void {
+  _actualPlaybackRate = 1;
+  _actualPitch = 1;
+  document.querySelectorAll("video").forEach(resetBothModes);
 }
 
 // Handle a node added to the DOM: if it's a video, set playback rate; if it contains videos, do the same
@@ -146,13 +158,6 @@ function initVideoObservers(): void {
   _isObserving = true;
 }
 
-// function resetTuning(): void {
-//   _actualPlaybackRate = 1;
-//   _actualPitch = 1;
-
-//   // TODO: Disconnect soundtouch
-// }
-
 function disconnectAllVideos(): void {
   // Stop observing DOM changes
   if (_observer) {
@@ -176,12 +181,13 @@ chrome.runtime.sendMessage({ action: "getEnabled" }, ({ enabled }) => {
 });
 
 // Listen for messages from the background or popup
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (message, _sender, sendResponse) => {
   // Handle ON/OFF first
   if (message.enabled !== undefined && message.enabled !== null) {
     _extensionEnabled = message.enabled;
 
     if (!_extensionEnabled) {
+      await resetSoundTouch();
       disconnectAllVideos();
     } else {
       initVideoObservers();
@@ -206,10 +212,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse({ success: true });
   }
 
-  if (message.mode === "rate" || message.mode === "pitch") {
-    mode = message.mode;
-    applyCurrentSettings();
-    sendResponse?.({ success: true });
+  if (message.action === "resetPitching") {
+    await resetPitching();
+    sendResponse({ success: true });
+  }
+
+  if (
+    message.action === "setMode" &&
+    (message.mode === "rate" || message.mode === "pitch")
+  ) {
+    _mode = message.mode;
+    resetAllVideosTune();
+    sendResponse({ success: true });
     return;
   }
 });

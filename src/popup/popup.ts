@@ -1,6 +1,3 @@
-// Simple popup script
-console.log("Popup script loaded");
-
 function sendMessageToActiveTab(
   message: any,
   callback: (response: any) => void
@@ -13,9 +10,7 @@ function sendMessageToActiveTab(
   });
 }
 
-// Execute when DOM has fully loaded
 document.addEventListener("DOMContentLoaded", function () {
-  // Get button elements
   const enableToggle = document.getElementById(
     "enable-extension-toggle"
   ) as HTMLInputElement;
@@ -28,6 +23,15 @@ document.addEventListener("DOMContentLoaded", function () {
   // Get the current state of the extension
   chrome.runtime.sendMessage({ action: "getEnabled" }, (resp) => {
     enableToggle.checked = !!resp.enabled; // false if undefined
+  });
+
+  // Get the current mode and set the appropriate radio button value
+  chrome.runtime.sendMessage({ action: "getMode" }, (resp) => {
+    if (resp.mode === "pitch") {
+      pitchMode.checked = true;
+    } else {
+      rateMode.checked = true;
+    }
   });
 
   enableToggle?.addEventListener("change", function () {
@@ -51,21 +55,22 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  resetButton?.addEventListener("click", function () {
-    const action = pitchMode.checked ? "setPitch" : "setPlaybackRate";
-    sendMessageToActiveTab({ action: action, frequency: 440 }, (response) => {
+  resetButton?.addEventListener("click", () => {
+    sendMessageToActiveTab({ action: "resetPitching" }, (response) => {
       console.log("Content script response:", response);
     });
   });
 
   rateMode?.addEventListener("click", function () {
-    sendMessageToActiveTab({ mode: "rate" }, (response) => {
+    chrome.runtime.sendMessage({ action: "setMode", mode: "rate" });
+    sendMessageToActiveTab({ action: "setMode", mode: "rate" }, (response) => {
       console.log("Content script response:", response);
     });
   });
 
   pitchMode?.addEventListener("click", function () {
-    sendMessageToActiveTab({ mode: "pitch" }, (response) => {
+    chrome.runtime.sendMessage({ action: "setMode", mode: "pitch" });
+    sendMessageToActiveTab({ action: "setMode", mode: "pitch" }, (response) => {
       console.log("Content script response:", response);
     });
   });
