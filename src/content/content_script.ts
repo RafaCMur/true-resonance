@@ -8,8 +8,14 @@ let _audioCtx: AudioContext | null = null;
 let _baseFrequency = 440;
 let _mode: "pitch" | "rate" = "pitch";
 let _isSoundtouchInit = false;
-let _soundtouchNode: AudioWorkletNode | null = null;
-let _srcNode: MediaElementAudioSourceNode | null = null;
+const _nodeMap = new Map<
+  HTMLVideoElement,
+  {
+    srcNode: MediaElementAudioSourceNode;
+    workletNode: AudioWorkletNode;
+    isConnected: boolean;
+  }
+>();
 
 function getAudioContext() {
   if (!_audioCtx) {
@@ -18,32 +24,48 @@ function getAudioContext() {
   return _audioCtx;
 }
 
+/**
+ * Get the MediaElementAudioSourceNode and AudioWorkletNode for a video element.
+ * If they don't exist, create them.
+ */
+function getNodesFor(video: HTMLVideoElement) {
+  let node = _nodeMap.get(video);
+  if (!node) {
+    const audioCtx = getAudioContext();
+    const srcNode = audioCtx.createMediaElementSource(video);
+    const workletNode = new AudioWorkletNode(audioCtx, "soundtouch-processor");
+    node = { srcNode, workletNode, isConnected: false };
+    _nodeMap.set(video, node);
+  }
+  return node;
+}
+
 async function initSoundtouch(video: HTMLVideoElement) {
   const audioCtx = getAudioContext();
 
   // 1) Worklet can only be loaded once
   if (!_isSoundtouchInit) {
-    try {
-      await audioCtx.audioWorklet.addModule(WORKLET_PATH);
-    } catch (err) {
-      console.log("(ERROR) failed to load worklet", err);
-    }
+    await audioCtx.audioWorklet.addModule(WORKLET_PATH).catch(console.error);
     await audioCtx.resume();
     _isSoundtouchInit = true;
   }
 
+  const node = getNodesFor(video);
+
   // 2) Only wire up the graph if it doesn’t already exist
-  if (!_srcNode || !_soundtouchNode) {
-    _srcNode = audioCtx.createMediaElementSource(video);
-    _soundtouchNode = new AudioWorkletNode(audioCtx, "soundtouch-processor");
-    _srcNode.connect(_soundtouchNode).connect(audioCtx.destination);
+  if (!node.isConnected) {
+    node.srcNode.connect(node.workletNode).connect(audioCtx.destination);
+    node.isConnected = true;
   }
 }
 
 async function resetSoundTouch(): Promise<void> {
   // Disconnect old nodes
-  if (_srcNode) _srcNode.disconnect();
-  if (_soundtouchNode) _soundtouchNode.disconnect();
+  _nodeMap.forEach((node) => {
+    node.srcNode.disconnect();
+    node.workletNode.disconnect();
+    node.isConnected = false;
+  });
 
   // Close audio context
   await _audioCtx?.close();
@@ -51,8 +73,7 @@ async function resetSoundTouch(): Promise<void> {
 
   // Reset variables
   _isSoundtouchInit = false;
-  _soundtouchNode = null;
-  _srcNode = null;
+  _nodeMap.clear();
 }
 
 async function resetPitching(): Promise<void> {
@@ -90,12 +111,12 @@ function changePlayBackRate(video: HTMLVideoElement, rate: number): void {
 }
 
 function changePitch(pitch: number): void {
-  if (_soundtouchNode && _audioCtx) {
-    _soundtouchNode.parameters
+  if (!_audioCtx) return;
+
+  for (const node of _nodeMap.values()) {
+    node.workletNode.parameters
       .get("pitch")!
       .setValueAtTime(pitch, _audioCtx.currentTime);
-  } else {
-    console.log("(ERROR) SoundTouch node or audio context not initialized");
   }
 }
 
