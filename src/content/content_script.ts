@@ -175,6 +175,7 @@ function disconnectAllVideos(): void {
 
 // Ask background if extension is enabled
 chrome.runtime.sendMessage({ action: "getEnabled" }, ({ enabled }) => {
+  _extensionEnabled = enabled;
   if (enabled) {
     initVideoObservers();
   }
