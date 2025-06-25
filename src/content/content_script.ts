@@ -65,7 +65,9 @@ async function connectSoundtouch(video: HTMLVideoElement) {
   const processor = await getProcessor(); // <— global
   try {
     src.disconnect();
-  } catch (_) {}
+  } catch (e) {
+    console.error(e);
+  }
 
   src.connect(processor);
   getSoundtouchNodes(video).isSoundtouchConnected = true;
@@ -76,16 +78,20 @@ function disconnectSoundtouch(video: HTMLVideoElement) {
   if (!entry || !entry.isSoundtouchConnected) return;
 
   const { src } = entry;
-  const processor = _globalAudioProcessor!;
-  src.disconnect(processor);
-  src.connect(getAudioContext().destination); // ruta nativa
+  try {
+    src.disconnect();
+  } catch (e) {
+    console.error(e);
+  }
+  src.connect(getAudioContext().destination);
 
   entry.isSoundtouchConnected = false;
 }
 
 async function resetSoundTouch(): Promise<void> {
-  for (const [video] of _soundtouchMap) {
+  for (const [video, nodes] of _soundtouchMap) {
     disconnectSoundtouch(video);
+    nodes.isSoundtouchConnected = false;
   }
   if (_globalAudioProcessor) {
     _globalAudioProcessor.disconnect();
@@ -167,11 +173,9 @@ async function tuneVideo(video: HTMLVideoElement): Promise<void> {
 
   if (_mode === "rate") {
     changePitch(1);
-    disablePitchPreservation(video);
     changePlayBackRate(video, _actualPlaybackRate);
     disablePitchPreservation(video);
   } else {
-    enablePitchPreservation(video);
     changePlayBackRate(video, 1);
     enablePitchPreservation(video);
     changePitch(_actualPitch);
@@ -208,6 +212,18 @@ function initVideoObservers(): void {
   _observer = new MutationObserver((mutations) => {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach(handleNewNode);
+
+      mutation.removedNodes.forEach((node) => {
+        if (node instanceof HTMLVideoElement) {
+          disconnectSoundtouch(node);
+          _listenerMap.delete(node);
+        } else if (node instanceof Element) {
+          node.querySelectorAll("video").forEach((v) => {
+            disconnectSoundtouch(v);
+            _listenerMap.delete(v);
+          });
+        }
+      });
     });
   });
 
