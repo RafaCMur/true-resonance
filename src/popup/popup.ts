@@ -14,11 +14,24 @@ document.addEventListener("DOMContentLoaded", function () {
   const enableToggle = document.getElementById(
     "enable-extension-toggle"
   ) as HTMLInputElement;
-  const pitch432Button = document.getElementById("pitch-432-btn");
-  const pitch528Button = document.getElementById("pitch-528-btn");
   const resetButton = document.getElementById("reset-btn");
   const pitchMode = document.getElementById("pitch-mode") as HTMLInputElement;
   const rateMode = document.getElementById("rate-mode") as HTMLInputElement;
+  const presetButtons = {
+    432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
+    528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
+  };
+
+  function highlight(freq: 432 | 528 | 440) {
+    Object.entries(presetButtons).forEach(([hz, btn]) => {
+      btn.classList.toggle("active", Number(hz) === freq);
+    });
+  }
+
+  function sendMsgToTabAndBackground(msg: any, cb?: () => void) {
+    sendMessageToActiveTab(msg, () => cb?.());
+    chrome.runtime.sendMessage(msg);
+  }
 
   // Get the current state of the extension
   chrome.runtime.sendMessage({ action: "getEnabled" }, (resp) => {
@@ -34,31 +47,37 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  enableToggle?.addEventListener("change", function () {
-    chrome.runtime.sendMessage({ enabled: enableToggle.checked });
-    sendMessageToActiveTab({ enabled: enableToggle.checked }, (response) => {
-      console.log("Content script response:", response);
+  enableToggle.addEventListener("change", () => {
+    const enabled = enableToggle.checked;
+    chrome.runtime.sendMessage({ enabled });
+    sendMessageToActiveTab({ enabled }, () => {
+      if (!enabled) highlight(440);
     });
   });
 
-  pitch432Button?.addEventListener("click", function () {
+  // 432 hz
+  presetButtons[432]?.addEventListener("click", () => {
     const action = pitchMode.checked ? "setPitch" : "setPlaybackRate";
-    sendMessageToActiveTab({ action: action, frequency: 432 }, (response) => {
-      console.log("Content script response:", response);
-    });
+    const freq = 432 as const;
+    sendMsgToTabAndBackground({ action, frequency: freq }, () =>
+      highlight(freq)
+    );
   });
 
-  pitch528Button?.addEventListener("click", function () {
+  // 528 hz
+  presetButtons[528]?.addEventListener("click", () => {
     const action = pitchMode.checked ? "setPitch" : "setPlaybackRate";
-    sendMessageToActiveTab({ action: action, frequency: 528 }, (response) => {
-      console.log("Content script response:", response);
-    });
+    const freq = 528 as const;
+    sendMsgToTabAndBackground({ action, frequency: freq }, () =>
+      highlight(freq)
+    );
   });
 
+  // Reset to 440 Hz
   resetButton?.addEventListener("click", () => {
-    sendMessageToActiveTab({ action: "resetPitching" }, (response) => {
-      console.log("Content script response:", response);
-    });
+    sendMsgToTabAndBackground({ action: "resetPitching" }, () =>
+      highlight(440)
+    );
   });
 
   rateMode?.addEventListener("click", function () {
@@ -73,5 +92,9 @@ document.addEventListener("DOMContentLoaded", function () {
     sendMessageToActiveTab({ action: "setMode", mode: "pitch" }, (response) => {
       console.log("Content script response:", response);
     });
+  });
+
+  chrome.runtime.sendMessage({ action: "getFrequency" }, (resp) => {
+    highlight(resp.frequency as 432 | 528 | 440);
   });
 });

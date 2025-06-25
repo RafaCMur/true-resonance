@@ -169,6 +169,11 @@
     color: white;
     border-color: var(--primary-color);
   }
+
+  .preset-button.active:hover {
+    background-color: var(--primary-hover);
+    border-color: var(--primary-hover);
+  }  
   
   .reset-container {
     margin-top: 16px;
