@@ -1,100 +1,98 @@
+const enableToggle = document.getElementById(
+  "enable-extension-toggle"
+) as HTMLInputElement;
+
+const resetButton = document.getElementById("reset-btn") as HTMLButtonElement;
+const pitchMode = document.getElementById("pitch-mode") as HTMLInputElement;
+const rateMode = document.getElementById("rate-mode") as HTMLInputElement;
+
+const presetButtons: Record<432 | 528, HTMLButtonElement | null> = {
+  432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
+  528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
+};
+
 function sendMessageToActiveTab(
   message: any,
-  callback: (response: any) => void
-) {
-  chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-    const tab = tabs[0];
-    if (tab?.id) {
-      chrome.tabs.sendMessage(tab.id, message, callback);
-    }
+  callback?: (response: any) => void
+): void {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeTab = tabs[0];
+    if (!activeTab?.id) return;
+
+    // Use the correct overload: with or without callback
+    callback
+      ? chrome.tabs.sendMessage(activeTab.id, message, callback) // 3-argument
+      : chrome.tabs.sendMessage(activeTab.id, message); // 2-argument
   });
 }
 
-document.addEventListener("DOMContentLoaded", function () {
-  const enableToggle = document.getElementById(
-    "enable-extension-toggle"
-  ) as HTMLInputElement;
-  const resetButton = document.getElementById("reset-btn");
-  const pitchMode = document.getElementById("pitch-mode") as HTMLInputElement;
-  const rateMode = document.getElementById("rate-mode") as HTMLInputElement;
-  const presetButtons = {
-    432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
-    528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
-  };
+/** Sends the same message to the background script and the active tab */
+function sendToAll(message: any): void {
+  sendMessageToActiveTab(message);
+  chrome.runtime.sendMessage(message);
+}
 
-  function highlight(freq: 432 | 528 | 440) {
-    Object.entries(presetButtons).forEach(([hz, btn]) => {
-      btn.classList.toggle("active", Number(hz) === freq);
-    });
-  }
-
-  function sendMsgToTabAndBackground(msg: any, cb?: () => void) {
-    sendMessageToActiveTab(msg, () => cb?.());
-    chrome.runtime.sendMessage(msg);
-  }
-
-  // Get the current state of the extension
-  chrome.runtime.sendMessage({ action: "getEnabled" }, (resp) => {
-    enableToggle.checked = !!resp.enabled; // false if undefined
+/** Highlights the button that matches the current frequency */
+function highlightButton(freq: 432 | 528 | 440): void {
+  Object.entries(presetButtons).forEach(([hz, btn]) => {
+    if (btn) btn.classList.toggle("active", Number(hz) === freq);
   });
+}
 
-  // Get the current mode and set the appropriate radio button value
-  chrome.runtime.sendMessage({ action: "getMode" }, (resp) => {
-    if (resp.mode === "pitch") {
-      pitchMode.checked = true;
-    } else {
-      rateMode.checked = true;
-    }
+/** Queries the background for the stored frequency and updates the UI */
+function refreshHighlight(): void {
+  chrome.runtime.sendMessage({ action: "getFrequency" }, (response) => {
+    highlightButton(response.frequency as 432 | 528 | 440);
   });
+}
 
-  enableToggle.addEventListener("change", () => {
-    const enabled = enableToggle.checked;
-    chrome.runtime.sendMessage({ enabled });
-    sendMessageToActiveTab({ enabled }, () => {
-      if (!enabled) highlight(440);
-    });
-  });
+// Is the extension enabled?
+chrome.runtime.sendMessage({ action: "getEnabled" }, (response) => {
+  enableToggle.checked = !!response.enabled;
+});
 
-  // 432 hz
-  presetButtons[432]?.addEventListener("click", () => {
+// Current mode (pitch vs. rate)?
+chrome.runtime.sendMessage({ action: "getMode" }, (response) => {
+  (response.mode === "pitch" ? pitchMode : rateMode).checked = true;
+});
+
+// Current frequency preset?
+refreshHighlight();
+
+/* ---------- Event listeners ---------- */
+
+// Master enable / disable toggle
+enableToggle.addEventListener("change", () => {
+  const enabled = enableToggle.checked;
+  sendToAll({ enabled });
+  if (!enabled) highlightButton(440);
+});
+
+// Preset buttons (432 Hz and 528 Hz)
+Object.entries(presetButtons).forEach(([hz, btn]) => {
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
     const action = pitchMode.checked ? "setPitch" : "setPlaybackRate";
-    const freq = 432 as const;
-    sendMsgToTabAndBackground({ action, frequency: freq }, () =>
-      highlight(freq)
-    );
+    const frequency = Number(hz) as 432 | 528;
+    sendToAll({ action, frequency });
+    highlightButton(frequency);
   });
+});
 
-  // 528 hz
-  presetButtons[528]?.addEventListener("click", () => {
-    const action = pitchMode.checked ? "setPitch" : "setPlaybackRate";
-    const freq = 528 as const;
-    sendMsgToTabAndBackground({ action, frequency: freq }, () =>
-      highlight(freq)
-    );
-  });
+// Reset button → back to 440 Hz
+resetButton.addEventListener("click", () => {
+  sendToAll({ action: "resetPitching" });
+  highlightButton(440);
+});
 
-  // Reset to 440 Hz
-  resetButton?.addEventListener("click", () => {
-    sendMsgToTabAndBackground({ action: "resetPitching" }, () =>
-      highlight(440)
-    );
-  });
+// Mode radio buttons
+rateMode.addEventListener("click", () => {
+  sendToAll({ action: "setMode", mode: "rate" });
+  refreshHighlight();
+});
 
-  rateMode?.addEventListener("click", function () {
-    chrome.runtime.sendMessage({ action: "setMode", mode: "rate" });
-    sendMessageToActiveTab({ action: "setMode", mode: "rate" }, (response) => {
-      console.log("Content script response:", response);
-    });
-  });
-
-  pitchMode?.addEventListener("click", function () {
-    chrome.runtime.sendMessage({ action: "setMode", mode: "pitch" });
-    sendMessageToActiveTab({ action: "setMode", mode: "pitch" }, (response) => {
-      console.log("Content script response:", response);
-    });
-  });
-
-  chrome.runtime.sendMessage({ action: "getFrequency" }, (resp) => {
-    highlight(resp.frequency as 432 | 528 | 440);
-  });
+pitchMode.addEventListener("click", () => {
+  sendToAll({ action: "setMode", mode: "pitch" });
+  refreshHighlight();
 });
