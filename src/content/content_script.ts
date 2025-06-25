@@ -265,10 +265,10 @@ chrome.runtime.sendMessage({ action: "getEnabled" }, ({ enabled }) => {
 });
 
 // Listen for messages from the background or popup
-chrome.runtime.onMessage.addListener(async (message, _sender, sendResponse) => {
-  // Handle ON/OFF first
-  if (message.enabled !== undefined && message.enabled !== null) {
-    _extensionEnabled = message.enabled;
+chrome.runtime.onMessage.addListener(async (msg, _s, send) => {
+  /* ----- Toggle ON / OFF -------------------------- */
+  if (msg.enabled !== undefined && msg.enabled !== null) {
+    _extensionEnabled = msg.enabled;
 
     if (!_extensionEnabled) {
       await resetSoundTouch();
@@ -276,38 +276,38 @@ chrome.runtime.onMessage.addListener(async (message, _sender, sendResponse) => {
     } else {
       initVideoObservers();
     }
-
-    sendResponse?.({ success: true });
-    return; // sync response done
+    send?.({ success: true });
+    return;
   }
 
-  if (!_extensionEnabled) return;
-
-  //If the extension is enabled, we do all the other checks and initialize the observers
-  if (message.action === "setPitch") {
-    _actualPitch = message.frequency / _baseFrequency;
-    applyCurrentSettings();
-    sendResponse({ success: true });
+  /* ----- Change mode -------------------------- */
+  if (msg.action === "setMode") {
+    _mode = msg.mode;
+    if (_extensionEnabled) applyCurrentSettings();
+    send?.({ success: true });
+    return;
   }
 
-  if (message.action === "setPlaybackRate") {
-    _actualPlaybackRate = message.frequency / _baseFrequency;
-    applyCurrentSettings();
-    sendResponse({ success: true });
+  /* ----- Change pitch ------------------------- */
+  if (msg.action === "setPitch") {
+    _actualPitch = msg.frequency / _baseFrequency;
+    if (_extensionEnabled) applyCurrentSettings();
+    send?.({ success: true });
+    return;
   }
 
-  if (message.action === "resetPitching") {
+  /* ----- Change rate -------------------------- */
+  if (msg.action === "setPlaybackRate") {
+    _actualPlaybackRate = msg.frequency / _baseFrequency;
+    if (_extensionEnabled) applyCurrentSettings();
+    send?.({ success: true });
+    return;
+  }
+
+  /* ----- Reset pitch/rate --------------------- */
+  if (msg.action === "resetPitching") {
     await resetPitching();
-    sendResponse({ success: true });
-  }
-
-  if (
-    message.action === "setMode" &&
-    (message.mode === "rate" || message.mode === "pitch")
-  ) {
-    _mode = message.mode;
-    applyCurrentSettings();
-    sendResponse({ success: true });
+    send?.({ success: true });
     return;
   }
 });
