@@ -5,14 +5,15 @@ let _isObserving = false;
 let _actualPlaybackRate = 1;
 let _actualPitch = 1; // Pitch offset from base frequency. Example 432 / 440 = 0.98
 let _audioCtx: AudioContext | null = null;
+let _globalAudioProcessor: AudioWorkletNode | null = null;
 let _baseFrequency = 440;
 let _mode: "pitch" | "rate" = "pitch";
 let _isSoundtouchInit = false;
 interface SoundtouchNodes {
   src: MediaElementAudioSourceNode;
-  processor: AudioWorkletNode;
   isSoundtouchConnected: boolean;
 }
+
 const _soundtouchMap = new Map<HTMLVideoElement, SoundtouchNodes>();
 const _listenerMap = new Map<HTMLVideoElement, () => void>();
 
@@ -23,6 +24,21 @@ function getAudioContext() {
   return _audioCtx;
 }
 
+async function getProcessor(): Promise<AudioWorkletNode> {
+  if (_globalAudioProcessor) return _globalAudioProcessor;
+
+  const ctx = getAudioContext();
+
+  if (!_isSoundtouchInit) {
+    await ctx.audioWorklet.addModule(WORKLET_PATH);
+    _isSoundtouchInit = true;
+  }
+
+  _globalAudioProcessor = new AudioWorkletNode(ctx, "soundtouch-processor");
+  _globalAudioProcessor.connect(ctx.destination);
+  return _globalAudioProcessor;
+}
+
 /**
  * Get the MediaElementAudioSourceNode and AudioWorkletNode for a video element.
  * If they don't exist, create them.
@@ -30,14 +46,8 @@ function getAudioContext() {
 function getSoundtouchNodes(video: HTMLVideoElement): SoundtouchNodes {
   let nodes = _soundtouchMap.get(video);
   if (!nodes) {
-    const ctx = getAudioContext();
-    const src = ctx.createMediaElementSource(video);
-    const processor = new AudioWorkletNode(ctx, "soundtouch-processor");
-    nodes = {
-      src,
-      processor,
-      isSoundtouchConnected: false,
-    };
+    const src = getAudioContext().createMediaElementSource(video);
+    nodes = { src, isSoundtouchConnected: false };
     _soundtouchMap.set(video, nodes);
   }
   return nodes;
@@ -45,49 +55,41 @@ function getSoundtouchNodes(video: HTMLVideoElement): SoundtouchNodes {
 
 async function connectSoundtouch(video: HTMLVideoElement) {
   const ctx = getAudioContext();
-
-  // Load module only the first time
-  if (!_isSoundtouchInit) {
-    await ctx.audioWorklet.addModule(WORKLET_PATH);
-    _isSoundtouchInit = true;
+  if (ctx.state === "suspended" || (ctx.state as any) === "interrupted") {
+    await ctx.resume();
   }
 
-  // Always resume if the context is suspended
-  if (ctx.state === "suspended") await ctx.resume();
+  const { src, isSoundtouchConnected } = getSoundtouchNodes(video);
+  if (isSoundtouchConnected) return; // ya está
 
-  const { src, processor, isSoundtouchConnected } = getSoundtouchNodes(video);
+  const processor = await getProcessor(); // <— global
+  try {
+    src.disconnect();
+  } catch (_) {}
 
-  if (!isSoundtouchConnected) {
-    try {
-      src.disconnect();
-    } catch (error) {
-      console.error(error);
-    }
-
-    src.connect(processor).connect(ctx.destination);
-
-    _soundtouchMap.get(video)!.isSoundtouchConnected = true;
-  }
+  src.connect(processor);
+  getSoundtouchNodes(video).isSoundtouchConnected = true;
 }
 
 function disconnectSoundtouch(video: HTMLVideoElement) {
   const entry = _soundtouchMap.get(video);
   if (!entry || !entry.isSoundtouchConnected) return;
 
-  const { src, processor } = entry;
-
+  const { src } = entry;
+  const processor = _globalAudioProcessor!;
   src.disconnect(processor);
-  processor.disconnect();
-
-  src.connect(getAudioContext().destination);
+  src.connect(getAudioContext().destination); // ruta nativa
 
   entry.isSoundtouchConnected = false;
 }
 
 async function resetSoundTouch(): Promise<void> {
-  for (const [video, nodes] of _soundtouchMap) {
+  for (const [video] of _soundtouchMap) {
     disconnectSoundtouch(video);
-    nodes.isSoundtouchConnected = false;
+  }
+  if (_globalAudioProcessor) {
+    _globalAudioProcessor.disconnect();
+    _globalAudioProcessor = null;
   }
   _isSoundtouchInit = false;
 }
@@ -152,13 +154,10 @@ function changePlayBackRate(video: HTMLVideoElement, rate: number): void {
 }
 
 function changePitch(pitch: number): void {
-  if (!_audioCtx) return;
-
-  for (const node of _soundtouchMap.values()) {
-    node.processor.parameters
-      .get("pitch")!
-      .setValueAtTime(pitch, _audioCtx.currentTime);
-  }
+  if (!_audioCtx || !_globalAudioProcessor) return;
+  _globalAudioProcessor.parameters
+    .get("pitch")!
+    .setValueAtTime(pitch, _audioCtx.currentTime);
 }
 
 async function tuneVideo(video: HTMLVideoElement): Promise<void> {
