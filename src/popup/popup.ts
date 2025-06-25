@@ -21,8 +21,8 @@ function sendMessageToActiveTab(
 
     // Use the correct overload: with or without callback
     callback
-      ? chrome.tabs.sendMessage(activeTab.id, message, callback) // 3-argument
-      : chrome.tabs.sendMessage(activeTab.id, message); // 2-argument
+      ? chrome.tabs.sendMessage(activeTab.id, message, callback)
+      : chrome.tabs.sendMessage(activeTab.id, message);
   });
 }
 
@@ -39,7 +39,7 @@ function highlightButton(freq: 432 | 528 | 440): void {
   });
 }
 
-/** Queries the background for the stored frequency and updates the UI */
+/** Asks the background for the stored frequency and updates the UI */
 function refreshHighlight(): void {
   chrome.runtime.sendMessage({ action: "getFrequency" }, (response) => {
     highlightButton(response.frequency as 432 | 528 | 440);
@@ -58,8 +58,6 @@ chrome.runtime.sendMessage({ action: "getMode" }, (response) => {
 
 // Current frequency preset?
 refreshHighlight();
-
-/* ---------- Event listeners ---------- */
 
 // Master enable / disable toggle
 enableToggle.addEventListener("change", () => {
@@ -96,3 +94,5 @@ pitchMode.addEventListener("click", () => {
   sendToAll({ action: "setMode", mode: "pitch" });
   refreshHighlight();
 });
+
+export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)

@@ -1,6 +1,8 @@
+import { Frequency, Mode } from "../shared/types";
+
 let _extensionEnabled = false; // disabled by default
-let _mode: "rate" | "pitch" = "pitch";
-let _currentFrequency: 432 | 528 | 440 = 440;
+let _mode: Mode = "pitch";
+let _currentFrequency: Frequency = 440;
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === "getEnabled") {
@@ -48,3 +50,5 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
   // return true; // <-- only keep this if any of the "other handlers" use sendResponse later
 });
+
+export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)

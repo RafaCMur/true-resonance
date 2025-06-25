@@ -1,24 +1,16 @@
-/* ------------------------ DECLARATIONS --------------------------- */
-
-interface SoundtouchNodes {
-  src: MediaElementAudioSourceNode;
-  isSoundtouchConnected: boolean;
-}
-
-const WORKLET_PATH = chrome.runtime.getURL("soundtouch-worklet.js");
-
-type Frequency = 440 | 432 | 528;
+import { WORKLET_PATH } from "../shared/constants";
+import { Frequency, Mode, SoundtouchNodes } from "../shared/types";
 
 let _extensionEnabled = false; // extension is disabled by default
 let _observer: MutationObserver | null;
 let _isObserving = false;
-let _actualPlaybackRate = 1;
-let _actualPitch = 1; // Pitch offset from base frequency. Example 432 / 440 = 0.98
+let _currentPlaybackRate = 1;
+let _currentPitch = 1; // Pitch offset from base frequency. Example 432 / 440 = 0.98
 let _audioCtx: AudioContext | null = null;
 let _globalAudioProcessor: AudioWorkletNode | null = null;
 let _targetFrequency: Frequency = 440;
 let _baseFrequency = 440;
-let _mode: "pitch" | "rate" = "pitch";
+let _mode: Mode = "pitch";
 let _isSoundtouchInit = false;
 
 const _soundtouchMap = new Map<HTMLVideoElement, SoundtouchNodes>();
@@ -108,12 +100,12 @@ async function resetSoundTouch(): Promise<void> {
 function recalculateFactors() {
   const factor = _targetFrequency / _baseFrequency; // 432→0.982…
   if (_mode === "pitch") {
-    _actualPitch = factor;
-    _actualPlaybackRate = 1;
+    _currentPitch = factor;
+    _currentPlaybackRate = 1;
   } else {
     // "rate"
-    _actualPitch = 1;
-    _actualPlaybackRate = factor;
+    _currentPitch = 1;
+    _currentPlaybackRate = factor;
   }
 }
 
@@ -185,11 +177,11 @@ async function tuneVideo(video: HTMLVideoElement): Promise<void> {
   if (_mode === "rate") {
     changePitch(1);
     disablePitchPreservation(video);
-    changePlayBackRate(video, _actualPlaybackRate);
+    changePlayBackRate(video, _currentPlaybackRate);
   } else {
     changePlayBackRate(video, 1);
     enablePitchPreservation(video);
-    changePitch(_actualPitch);
+    changePitch(_currentPitch);
   }
 }
 
@@ -323,3 +315,5 @@ chrome.runtime.onMessage.addListener(async (msg, _s, send) => {
     return;
   }
 });
+
+export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)
