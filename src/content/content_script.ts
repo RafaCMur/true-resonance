@@ -8,14 +8,13 @@ let _audioCtx: AudioContext | null = null;
 let _baseFrequency = 440;
 let _mode: "pitch" | "rate" = "pitch";
 let _isSoundtouchInit = false;
-const _nodeMap = new Map<
-  HTMLVideoElement,
-  {
-    srcNode: MediaElementAudioSourceNode;
-    workletNode: AudioWorkletNode;
-    isConnected: boolean;
-  }
->();
+interface SoundtouchNodes {
+  src: MediaElementAudioSourceNode;
+  processor: AudioWorkletNode;
+  isSoundtouchConnected: boolean;
+}
+const _soundtouchMap = new Map<HTMLVideoElement, SoundtouchNodes>();
+const _listenerMap = new Map<HTMLVideoElement, () => void>();
 
 function getAudioContext() {
   if (!_audioCtx) {
@@ -28,52 +27,96 @@ function getAudioContext() {
  * Get the MediaElementAudioSourceNode and AudioWorkletNode for a video element.
  * If they don't exist, create them.
  */
-function getNodesFor(video: HTMLVideoElement) {
-  let node = _nodeMap.get(video);
-  if (!node) {
-    const audioCtx = getAudioContext();
-    const srcNode = audioCtx.createMediaElementSource(video);
-    const workletNode = new AudioWorkletNode(audioCtx, "soundtouch-processor");
-    node = { srcNode, workletNode, isConnected: false };
-    _nodeMap.set(video, node);
+function getSoundtouchNodes(video: HTMLVideoElement): SoundtouchNodes {
+  let nodes = _soundtouchMap.get(video);
+  if (!nodes) {
+    const ctx = getAudioContext();
+    const src = ctx.createMediaElementSource(video);
+    const processor = new AudioWorkletNode(ctx, "soundtouch-processor");
+    nodes = {
+      src,
+      processor,
+      isSoundtouchConnected: false,
+    };
+    _soundtouchMap.set(video, nodes);
   }
-  return node;
+  return nodes;
 }
 
-async function initSoundtouch(video: HTMLVideoElement) {
-  const audioCtx = getAudioContext();
+async function connectSoundtouch(video: HTMLVideoElement) {
+  const ctx = getAudioContext();
 
-  // 1) Worklet can only be loaded once
+  // Load module only the first time
   if (!_isSoundtouchInit) {
-    await audioCtx.audioWorklet.addModule(WORKLET_PATH).catch(console.error);
-    await audioCtx.resume();
+    await ctx.audioWorklet.addModule(WORKLET_PATH);
     _isSoundtouchInit = true;
   }
 
-  const node = getNodesFor(video);
+  // Always resume if the context is suspended
+  if (ctx.state === "suspended") await ctx.resume();
 
-  // 2) Only wire up the graph if it doesn’t already exist
-  if (!node.isConnected) {
-    node.srcNode.connect(node.workletNode).connect(audioCtx.destination);
-    node.isConnected = true;
+  const { src, processor, isSoundtouchConnected } = getSoundtouchNodes(video);
+
+  if (!isSoundtouchConnected) {
+    try {
+      src.disconnect();
+    } catch (error) {
+      console.error(error);
+    }
+
+    src.connect(processor).connect(ctx.destination);
+
+    _soundtouchMap.get(video)!.isSoundtouchConnected = true;
   }
 }
 
+function disconnectSoundtouch(video: HTMLVideoElement) {
+  const entry = _soundtouchMap.get(video);
+  if (!entry || !entry.isSoundtouchConnected) return;
+
+  const { src, processor } = entry;
+
+  src.disconnect(processor);
+  processor.disconnect();
+
+  src.connect(getAudioContext().destination);
+
+  entry.isSoundtouchConnected = false;
+}
+
 async function resetSoundTouch(): Promise<void> {
-  // Disconnect old nodes
-  _nodeMap.forEach((node) => {
-    node.srcNode.disconnect();
-    node.workletNode.disconnect();
-    node.isConnected = false;
-  });
-
-  // Close audio context
-  await _audioCtx?.close();
-  _audioCtx = null;
-
-  // Reset variables
+  for (const [video, nodes] of _soundtouchMap) {
+    disconnectSoundtouch(video);
+    nodes.isSoundtouchConnected = false;
+  }
   _isSoundtouchInit = false;
-  _nodeMap.clear();
+}
+
+const isVideoPlaying = (video: HTMLVideoElement): boolean =>
+  !video.paused &&
+  !video.ended &&
+  video.currentTime > 0 &&
+  video.readyState >= 2;
+
+function waitForTheVideoToPlay(video: HTMLVideoElement) {
+  if (!_listenerMap.has(video)) {
+    const onPlay = () => tuneVideo(video);
+    video.addEventListener("playing", onPlay);
+    video.addEventListener(
+      "ended",
+      () => {
+        video.removeEventListener("playing", onPlay);
+        disconnectSoundtouch(video);
+        _listenerMap.delete(video);
+      },
+      { once: true }
+    );
+    _listenerMap.set(video, onPlay);
+  }
+
+  if (isVideoPlaying(video)) {
+    tuneVideo(video);
+  }
 }
 
 async function resetPitching(): Promise<void> {
@@ -105,16 +148,14 @@ function disablePitchPreservation(video: HTMLVideoElement): void {
 
 // Change playback rate and disable pitch preservation
 function changePlayBackRate(video: HTMLVideoElement, rate: number): void {
-  disablePitchPreservation(video);
   video.playbackRate = rate;
-  disablePitchPreservation(video);
 }
 
 function changePitch(pitch: number): void {
   if (!_audioCtx) return;
 
-  for (const node of _nodeMap.values()) {
-    node.workletNode.parameters
+  for (const node of _soundtouchMap.values()) {
+    node.processor.parameters
       .get("pitch")!
       .setValueAtTime(pitch, _audioCtx.currentTime);
   }
@@ -123,37 +164,40 @@ function changePitch(pitch: number): void {
 async function tuneVideo(video: HTMLVideoElement): Promise<void> {
   if (!_extensionEnabled) return;
 
+  await connectSoundtouch(video);
+
   if (_mode === "rate") {
+    changePitch(1);
+    disablePitchPreservation(video);
     changePlayBackRate(video, _actualPlaybackRate);
+    disablePitchPreservation(video);
   } else {
-    await initSoundtouch(video);
+    enablePitchPreservation(video);
+    changePlayBackRate(video, 1);
+    enablePitchPreservation(video);
     changePitch(_actualPitch);
   }
 }
 
-async function resetBothModes(video: HTMLVideoElement): Promise<void> {
-  changePlayBackRate(video, 1);
-  changePitch(1);
-}
-
 /** Re-apply the current mode (rate or pitch) to every <video> on the page */
 function applyCurrentSettings(): void {
-  document.querySelectorAll("video").forEach(tuneVideo);
-}
-
-function resetAllVideosTune(): void {
-  _actualPlaybackRate = 1;
-  _actualPitch = 1;
-  document.querySelectorAll("video").forEach(resetBothModes);
+  document.querySelectorAll("video").forEach((video) => {
+    // If the video is not already playing, wait for it to play and then tune it
+    if (!_listenerMap.has(video)) {
+      waitForTheVideoToPlay(video);
+    }
+    // But if the video is already playing, tune it now
+    tuneVideo(video);
+  });
 }
 
 // Handle a node added to the DOM: if it's a video, set playback rate; if it contains videos, do the same
 function handleNewNode(node: Node): void {
   if (node instanceof HTMLVideoElement) {
-    tuneVideo(node);
+    waitForTheVideoToPlay(node);
   } else if (node instanceof Element) {
     node.querySelectorAll("video").forEach((video) => {
-      tuneVideo(video);
+      waitForTheVideoToPlay(video);
     });
   }
 }
@@ -172,9 +216,7 @@ function initVideoObservers(): void {
   _observer.observe(document.body, { childList: true, subtree: true });
 
   // Apply changes to any videos already on the page
-  document.querySelectorAll("video").forEach((video) => {
-    tuneVideo(video);
-  });
+  applyCurrentSettings();
 
   _isObserving = true;
 }
@@ -192,6 +234,11 @@ function disconnectAllVideos(): void {
     video.playbackRate = 1;
     enablePitchPreservation(video);
   });
+
+  _listenerMap.forEach((onPlay, video) => {
+    video.removeEventListener("playing", onPlay);
+  });
+  _listenerMap.clear();
 }
 
 // Ask background if extension is enabled
@@ -244,7 +291,7 @@ chrome.runtime.onMessage.addListener(async (message, _sender, sendResponse) => {
     (message.mode === "rate" || message.mode === "pitch")
   ) {
     _mode = message.mode;
-    resetAllVideosTune();
+    applyCurrentSettings();
     sendResponse({ success: true });
     return;
   }
