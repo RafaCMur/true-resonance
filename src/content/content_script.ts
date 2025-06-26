@@ -1,4 +1,8 @@
-import { WORKLET_PATH } from "../shared/constants";
+import {
+  A4_STANDARD_FREQUENCY,
+  C5_STANDARD_FREQUENCY,
+  WORKLET_PATH,
+} from "../shared/constants";
 import { Frequency, Mode, SoundtouchNodes } from "../shared/types";
 
 let _extensionEnabled = false; // extension is disabled by default
@@ -8,8 +12,7 @@ let _currentPlaybackRate = 1;
 let _currentPitch = 1; // Pitch offset from base frequency. Example 432 / 440 = 0.98
 let _audioCtx: AudioContext | null = null;
 let _globalAudioProcessor: AudioWorkletNode | null = null;
-let _targetFrequency: Frequency = 440;
-let _baseFrequency = 440;
+let _targetFrequency: Frequency = A4_STANDARD_FREQUENCY;
 let _mode: Mode = "pitch";
 let _isSoundtouchInit = false;
 
@@ -97,8 +100,13 @@ async function resetSoundTouch(): Promise<void> {
   _isSoundtouchInit = false;
 }
 
+function getReferenceFreq(target: Frequency): number {
+  if (target === 528) return C5_STANDARD_FREQUENCY; // 528 is the reference for C5 which is tuned originally to 523.25
+  return A4_STANDARD_FREQUENCY;
+}
+
 function recalculateFactors() {
-  const factor = _targetFrequency / _baseFrequency; // 432→0.982…
+  const factor = _targetFrequency / getReferenceFreq(_targetFrequency); // 432→0.982…
   if (_mode === "pitch") {
     _currentPitch = factor;
     _currentPlaybackRate = 1;
