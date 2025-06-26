@@ -230,18 +230,13 @@ footer {
 }
 
 /* Keep footer layout */
-.footer-buttons a {
+.primary-link {
   display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
   padding: 6px 10px;
   border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.footer-buttons a:hover {
-  background-color: #f0f0f0;
 }
 
 .dropdown-container {
