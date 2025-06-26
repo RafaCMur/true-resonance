@@ -5,11 +5,42 @@ const enableToggle = document.getElementById(
 const resetButton = document.getElementById("reset-btn") as HTMLButtonElement;
 const pitchMode = document.getElementById("pitch-mode") as HTMLInputElement;
 const rateMode = document.getElementById("rate-mode") as HTMLInputElement;
+const appContainer = document.querySelector(".app-container") as HTMLElement;
+const youtubeOnlyMessage = document.getElementById(
+  "youtube-only-message"
+) as HTMLElement;
+const goToYoutubeBtn = document.getElementById(
+  "go-to-youtube-btn"
+) as HTMLButtonElement;
 
 const presetButtons: Record<432 | 528, HTMLButtonElement | null> = {
   432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
   528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
 };
+
+// Check if current page is YouTube
+function checkIfYouTube() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeTab = tabs[0];
+    const url = activeTab?.url || "";
+    const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
+
+    // Show/hide appropriate elements
+    appContainer.style.display = isYouTube ? "block" : "none";
+    youtubeOnlyMessage.style.display = isYouTube ? "none" : "block";
+  });
+}
+
+if (goToYoutubeBtn) {
+  goToYoutubeBtn.addEventListener("click", () => {
+    chrome.tabs.create({ url: "https://www.youtube.com" });
+  });
+}
+
+// Run the check when popup opens
+checkIfYouTube();
+
+// --------- FUNCTIONS ---------
 
 function sendMessageToActiveTab(
   message: any,
