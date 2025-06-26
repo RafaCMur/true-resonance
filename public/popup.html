@@ -1,51 +1,114 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>True Resonance</title>
-  <link rel="stylesheet" href="popup.css">
-</head>
-<body>
-  <div class="app-container">
-    <header>
-      <h2>True Resonance</h2>
-      <p>YouTube pitch shifting in real-time</p>
-    </header>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>True Resonance</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
 
-    <div class="toggle-container">
-      <span class="toggle-label">Enable</span>
-      <label class="toggle-switch">
-        <input type="checkbox" id="enable-extension-toggle">
-        <span class="toggle-slider"></span>
-      </label>
+  <body>
+    <div class="app-container">
+      <header>
+        <h2>True Resonance</h2>
+        <p>YouTube pitch shifting in real-time</p>
+      </header>
+
+      <div class="toggle-container">
+        <span class="toggle-label">Enable</span>
+        <label class="toggle-switch">
+          <input type="checkbox" id="enable-extension-toggle" />
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <!-- Mode selector: pill segmented control -->
+      <div class="mode-toggle">
+        <button id="pitch-mode-btn" class="mode-button active">
+          Pitch Only
+        </button>
+        <button id="rate-mode-btn" class="mode-button">Speed & Pitch</button>
+      </div>
+
+      <div class="preset-buttons">
+        <button id="pitch-432-btn" class="btn btn-outline preset-button">
+          432 Hz
+        </button>
+        <button id="pitch-528-btn" class="btn btn-outline preset-button">
+          528 Hz
+        </button>
+      </div>
+
+      <div class="reset-container">
+        <button id="reset-btn" class="btn btn-outline reset-button">
+          Reset to 440 Hz
+        </button>
+      </div>
+
+      <footer>
+        <p>Adjust YouTube videos to healing frequencies</p>
+
+        <!-- Research dropdown moved here -->
+        <div class="dropdown-container">
+          <button id="research-dropdown-btn" class="dropdown-toggle">
+            <span class="dropdown-label">Research & Contribute</span>
+            <span class="dropdown-arrow">▼</span>
+          </button>
+
+          <div id="research-content" class="dropdown-content">
+            <p>
+              There are limited scientific studies on 432Hz and 528Hz. Your
+              input can help us learn more.
+            </p>
+            <p>Have research or evidence? Contact us:</p>
+            <span class="mail-info">rh29ukpp@anonaddy.me</span>
+
+            <div class="footer-buttons">
+              <a
+                class="btn btn-primary primary-link"
+                href="https://github.com/RafaCMur/true-resonance"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                View on GitHub
+              </a>
+
+              <a
+                class="btn btn-primary primary-link"
+                href="https://www.paypal.com/donate/?hosted_button_id=TJYW36JX2NY48"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Buy me a coffee
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
 
-    <div class="preset-mode">
-      <label>
-        <input type="radio" name="mode" id="pitch-mode" checked>
-        Pitch Only
-      </label>
-      <label>
-        <input type="radio" name="mode" id="rate-mode">
-        Speed & Pitch
-      </label>
+    <div
+      id="youtube-only-message"
+      style="display: none; text-align: center; padding: 20px"
+    >
+      <h3>This extension works only on YouTube</h3>
+      <p>
+        True Resonance needs to be used on YouTube videos to adjust their
+        frequencies.
+      </p>
+      <a
+        class="btn btn-primary primary-link"
+        href="https://www.youtube.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        >Go to YouTube</a
+      >
     </div>
 
-    <div class="preset-buttons">
-      <button id="pitch-432-btn" class="preset-button">432 Hz</button>
-      <button id="pitch-528-btn" class="preset-button">528 Hz</button>
-    </div>
-
-    <div class="reset-container">
-      <button id="reset-btn" class="reset-button">Reset to 440 Hz</button>
-    </div>
-
-    <footer>
-      <p>Adjust YouTube videos to healing frequencies</p>
-    </footer>
-  </div>
-  
-  <script src="popup.js"></script>
-</body>
+    <script src="popup.js"></script>
+  </body>
 </html>

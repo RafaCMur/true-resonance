@@ -3,13 +3,55 @@ const enableToggle = document.getElementById(
 ) as HTMLInputElement;
 
 const resetButton = document.getElementById("reset-btn") as HTMLButtonElement;
-const pitchMode = document.getElementById("pitch-mode") as HTMLInputElement;
-const rateMode = document.getElementById("rate-mode") as HTMLInputElement;
+const pitchModeBtn = document.getElementById(
+  "pitch-mode-btn"
+) as HTMLButtonElement;
+const rateModeBtn = document.getElementById(
+  "rate-mode-btn"
+) as HTMLButtonElement;
+let currentMode: "pitch" | "rate" = "pitch";
+const appContainer = document.querySelector(".app-container") as HTMLElement;
+const youtubeOnlyMessage = document.getElementById(
+  "youtube-only-message"
+) as HTMLElement;
+const researchDropdownBtn = document.getElementById(
+  "research-dropdown-btn"
+) as HTMLButtonElement;
+const researchContent = document.getElementById(
+  "research-content"
+) as HTMLElement;
 
 const presetButtons: Record<432 | 528, HTMLButtonElement | null> = {
   432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
   528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
 };
+
+// Toggle research dropdown when clicked
+if (researchDropdownBtn && researchContent) {
+  researchDropdownBtn.addEventListener("click", () => {
+    // Toggle active classes for styling
+    researchDropdownBtn.classList.toggle("active");
+    researchContent.classList.toggle("active");
+  });
+}
+
+// Check if current page is YouTube
+function checkIfYouTube() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeTab = tabs[0];
+    const url = activeTab?.url || "";
+    const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
+
+    // Show/hide appropriate elements
+    appContainer.style.display = isYouTube ? "block" : "none";
+    youtubeOnlyMessage.style.display = isYouTube ? "none" : "block";
+  });
+}
+
+// Run the check when popup opens
+checkIfYouTube();
+
+// --------- FUNCTIONS ---------
 
 function sendMessageToActiveTab(
   message: any,
@@ -53,7 +95,9 @@ chrome.runtime.sendMessage({ action: "getEnabled" }, (response) => {
 
 // Current mode (pitch vs. rate)?
 chrome.runtime.sendMessage({ action: "getMode" }, (response) => {
-  (response.mode === "pitch" ? pitchMode : rateMode).checked = true;
+  currentMode = response.mode === "rate" ? "rate" : "pitch";
+  pitchModeBtn.classList.toggle("active", currentMode === "pitch");
+  rateModeBtn.classList.toggle("active", currentMode === "rate");
 });
 
 // Current frequency preset?
@@ -71,7 +115,7 @@ Object.entries(presetButtons).forEach(([hz, btn]) => {
   if (!btn) return;
 
   btn.addEventListener("click", () => {
-    const action = pitchMode.checked ? "setPitch" : "setPlaybackRate";
+    const action = currentMode === "pitch" ? "setPitch" : "setPlaybackRate";
     const frequency = Number(hz) as 432 | 528;
     sendToAll({ action, frequency });
     highlightButton(frequency);
@@ -84,15 +128,25 @@ resetButton.addEventListener("click", () => {
   highlightButton(440);
 });
 
-// Mode radio buttons
-rateMode.addEventListener("click", () => {
-  sendToAll({ action: "setMode", mode: "rate" });
-  refreshHighlight();
+// Mode buttons
+pitchModeBtn.addEventListener("click", () => {
+  if (currentMode !== "pitch") {
+    currentMode = "pitch";
+    pitchModeBtn.classList.add("active");
+    rateModeBtn.classList.remove("active");
+    sendToAll({ action: "setMode", mode: "pitch" });
+    refreshHighlight();
+  }
 });
 
-pitchMode.addEventListener("click", () => {
-  sendToAll({ action: "setMode", mode: "pitch" });
-  refreshHighlight();
+rateModeBtn.addEventListener("click", () => {
+  if (currentMode !== "rate") {
+    currentMode = "rate";
+    rateModeBtn.classList.add("active");
+    pitchModeBtn.classList.remove("active");
+    sendToAll({ action: "setMode", mode: "rate" });
+    refreshHighlight();
+  }
 });
 
 export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)
