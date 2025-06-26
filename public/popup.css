@@ -381,30 +381,31 @@ footer {
 }
 
 .dropdown-container {
-  margin: 16px 0;
+  margin: 0;
   width: 100%;
 }
 
 .dropdown-toggle {
   width: 100%;
-  padding: 10px;
-  background-color: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
+  padding: 0;
+  background: none;
+  border: none;
   font-size: 14px;
-  font-weight: 500;
-  color: var(--text-color);
+  font-weight: 600;
+  color: var(--primary-color);
   text-align: left;
   cursor: pointer;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
-  transition: border-color 0.2s, background-color 0.2s;
 }
 
-.dropdown-toggle:hover {
-  border-color: var(--primary-color);
-  background-color: rgba(99, 102, 241, 0.05);
+.dropdown-label {
+  margin-right: 4px;
+}
+
+.dropdown-label:hover {
+  text-decoration: underline;
 }
 
 .dropdown-arrow {
@@ -424,4 +425,8 @@ footer {
 
 .dropdown-content.active {
   max-height: 500px;
+}
+
+.mail-info {
+  color: var(--primary-color);
 }
