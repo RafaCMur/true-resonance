@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -7,6 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
+
 <body>
   <div class="app-container">
     <header>
@@ -29,14 +31,14 @@
     </div>
 
     <div class="preset-buttons">
-      <button id="pitch-432-btn" class="preset-button">432 Hz</button>
-      <button id="pitch-528-btn" class="preset-button">528 Hz</button>
+      <button id="pitch-432-btn" class="btn btn-outline preset-button">432 Hz</button>
+      <button id="pitch-528-btn" class="btn btn-outline preset-button">528 Hz</button>
     </div>
 
     <div class="reset-container">
-      <button id="reset-btn" class="reset-button">Reset to 440 Hz</button>
+      <button id="reset-btn" class="btn btn-outline reset-button">Reset to 440 Hz</button>
     </div>
-    
+
 
     <footer>
       <p>Adjust YouTube videos to healing frequencies</p>
@@ -47,24 +49,24 @@
           <span class="dropdown-label">Research & Contribute</span>
           <span class="dropdown-arrow">▼</span>
         </button>
-        <div id="research-content" class="dropdown-content">
-          <div class="research-section">
-            <h4>Research on Frequency Effects</h4>
-            <p>There are limited scientific studies on the effects of 432Hz and 528Hz frequencies. Your input can help advance our understanding.</p>
-            <div class="contact-info">
-              <p>Have research insights or evidence? Contact us:</p>
-              <span class="mail-info">rh29ukpp@anonaddy.me</span>
-            </div>
 
-            <div class="footer-buttons">
-              <a class="primary-link" href="https://github.com/true-resonance/true-resonance" target="_blank" rel="noopener noreferrer">
-                View on GitHub
-              </a>
-              
-              <a class="primary-link" href="https://www.paypal.com/donate/?hosted_button_id=TJYW36JX2NY48" target="_blank" rel="noopener noreferrer">
-                Buy me a coffee
-              </a>
-            </div>
+        <div id="research-content" class="dropdown-content">
+          <p>There are limited scientific studies on 432Hz and 528Hz. Your input can help us learn more.</p>
+          <div class="contact-info">
+            <p>Have research or evidence? Contact us:</p>
+            <span class="mail-info">rh29ukpp@anonaddy.me</span>
+          </div>
+
+          <div class="footer-buttons">
+            <a class="btn btn-primary" href="https://github.com/true-resonance/true-resonance" target="_blank"
+              rel="noopener noreferrer">
+              View on GitHub
+            </a>
+
+            <a class="btn btn-primary" href="https://www.paypal.com/donate/?hosted_button_id=TJYW36JX2NY48"
+              target="_blank" rel="noopener noreferrer">
+              Buy me a coffee
+            </a>
           </div>
         </div>
       </div>
@@ -74,9 +76,10 @@
   <div id="youtube-only-message" style="display: none; text-align: center; padding: 20px;">
     <h3>This extension works only on YouTube</h3>
     <p>True Resonance needs to be used on YouTube videos to adjust their frequencies.</p>
-    <a class="primary-link" href="https://www.youtube.com">Go to YouTube</a>
+    <a class="btn btn-primary" href="https://www.youtube.com">Go to YouTube</a>
   </div>
-  
+
   <script src="popup.js"></script>
 </body>
+
 </html>
