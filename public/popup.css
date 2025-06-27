@@ -185,13 +185,18 @@ footer {
   display: flex;
   margin-bottom: 1rem;
   border: 1px solid var(--border-color);
-  border-radius: 9999px; /* full pill wrapper */
-  overflow: hidden;
+  border-radius: 9999px;
   background-color: var(--card-bg);
 }
 
 .mode-button {
+  position: relative;
   flex: 1 1 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  line-height: 1;
   padding: 0.6rem 0;
   font-size: 0.9rem;
   background-color: transparent;
@@ -199,6 +204,23 @@ footer {
   border: none;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
+}
+
+.rate-btn {
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+}
+
+.pitch-btn {
+  border-top-right-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+}
+
+.mode-icon {
+  pointer-events: auto;
+  flex-shrink: 0;
+  height: 0.875rem;
+  width: 0.875rem;
 }
 
 .mode-button:not(.active):hover {
@@ -209,6 +231,38 @@ footer {
   background-color: var(--primary-color);
   color: #ffffff;
   box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* Tooltip centrado y más ancho */
+.mode-button .tooltip {
+  position: fixed;
+  top: 20%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  width: 85%;
+  max-width: 320px;
+
+  padding: 1rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  text-align: center;
+
+  background: #222;
+  color: #fff;
+  border-radius: 6px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  z-index: 100;
+}
+
+.mode-icon:hover + .tooltip,
+.mode-icon:focus-visible + .tooltip {
+  opacity: 1;
+  transform: translate(-50%, -55%);
 }
 
 /* Unified primary call-to-action links */
