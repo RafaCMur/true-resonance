@@ -5,3 +5,9 @@ export interface SoundtouchNodes {
   src: MediaElementAudioSourceNode;
   isSoundtouchConnected: boolean;
 }
+
+export interface GlobalState {
+  enabled: boolean;
+  mode: Mode;
+  frequency: Frequency;
+}

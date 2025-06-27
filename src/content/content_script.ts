@@ -3,7 +3,7 @@ import {
   C5_STANDARD_FREQUENCY,
   WORKLET_PATH,
 } from "../shared/constants";
-import { Frequency, Mode, SoundtouchNodes } from "../shared/types";
+import { Frequency, GlobalState, Mode, SoundtouchNodes } from "../shared/types";
 
 let _extensionEnabled = false; // extension is disabled by default
 let _observer: MutationObserver | null;
@@ -267,61 +267,86 @@ function disconnectAllVideos(): void {
   _listenerMap.clear();
 }
 
+function applyState(state: GlobalState): void {
+  _extensionEnabled = state.enabled;
+  _mode = state.mode;
+  _targetFrequency = state.frequency;
+  recalculateFactors();
+  if (_extensionEnabled) {
+    initVideoObservers();
+    applyCurrentSettings();
+  } else {
+    disconnectAllVideos();
+    _targetFrequency = 440;
+    resetSoundTouch();
+  }
+}
+
 /* ------------------------ EXECUTION --------------------------- */
 recalculateFactors();
 
+/* Load any previously persisted values */
+chrome.storage.local.get("state", ({ state }) => {
+  if (state) applyState(state as GlobalState);
+});
+
+chrome.storage.onChanged.addListener(({ state }) => {
+  if (state?.newValue) applyState(state.newValue as GlobalState);
+});
+
 // Ask background if extension is enabled
-chrome.runtime.sendMessage({ action: "getEnabled" }, ({ enabled }) => {
-  _extensionEnabled = enabled;
-  if (enabled) {
-    initVideoObservers();
-  }
-});
+// chrome.runtime.sendMessage({ action: "getEnabled" }, ({ enabled }) => {
+//   _extensionEnabled = enabled;
+//   if (enabled) {
+//     initVideoObservers();
+//   }
+// });
 
+// TODO – to be removed
 // Listen for messages from the background or popup
-chrome.runtime.onMessage.addListener(async (msg, _s, send) => {
-  /* ----- Toggle ON / OFF -------------------------- */
-  if (msg.enabled !== undefined && msg.enabled !== null) {
-    _extensionEnabled = msg.enabled;
+// chrome.runtime.onMessage.addListener(async (msg, _s, send) => {
+//   /* ----- Toggle ON / OFF -------------------------- */
+//   if (msg.enabled !== undefined && msg.enabled !== null) {
+//     _extensionEnabled = msg.enabled;
 
-    if (!_extensionEnabled) {
-      await resetSoundTouch();
-      disconnectAllVideos();
-      _targetFrequency = 440;
-      recalculateFactors();
-    } else {
-      initVideoObservers();
-    }
-    send?.({ success: true });
-    return;
-  }
+//     if (!_extensionEnabled) {
+//       await resetSoundTouch();
+//       disconnectAllVideos();
+//       _targetFrequency = 440;
+//       recalculateFactors();
+//     } else {
+//       initVideoObservers();
+//     }
+//     send?.({ success: true });
+//     return;
+//   }
 
-  /* ----- Change mode -------------------------- */
-  if (msg.action === "setMode") {
-    _mode = msg.mode;
-    recalculateFactors();
-    if (_extensionEnabled) applyCurrentSettings();
-    send?.({ success: true });
-    return;
-  }
+//   /* ----- Change mode -------------------------- */
+//   if (msg.action === "setMode") {
+//     _mode = msg.mode;
+//     recalculateFactors();
+//     if (_extensionEnabled) applyCurrentSettings();
+//     send?.({ success: true });
+//     return;
+//   }
 
-  /* ----- Change pitch ------------------------- */
-  if (msg.action === "setPitch" || msg.action === "setPlaybackRate") {
-    _targetFrequency = msg.frequency as 432 | 528 | 440;
-    recalculateFactors();
-    if (_extensionEnabled) applyCurrentSettings();
-    send?.({ success: true });
-    return;
-  }
+//   /* ----- Change pitch ------------------------- */
+//   if (msg.action === "setPitch" || msg.action === "setPlaybackRate") {
+//     _targetFrequency = msg.frequency as 432 | 528 | 440;
+//     recalculateFactors();
+//     if (_extensionEnabled) applyCurrentSettings();
+//     send?.({ success: true });
+//     return;
+//   }
 
-  /* ----- Reset pitch/rate --------------------- */
-  if (msg.action === "resetPitching") {
-    _targetFrequency = 440;
-    recalculateFactors();
-    if (_extensionEnabled) applyCurrentSettings();
-    send?.({ success: true });
-    return;
-  }
-});
+//   /* ----- Reset pitch/rate --------------------- */
+//   if (msg.action === "resetPitching") {
+//     _targetFrequency = 440;
+//     recalculateFactors();
+//     if (_extensionEnabled) applyCurrentSettings();
+//     send?.({ success: true });
+//     return;
+//   }
+// });
 
 export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)

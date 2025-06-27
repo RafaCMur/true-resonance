@@ -1,3 +1,8 @@
+import { A4_STANDARD_FREQUENCY } from "../shared/constants";
+import { Frequency, GlobalState } from "../shared/types";
+
+/* ------------------------ VARIABLES --------------------------- */
+
 const enableToggle = document.getElementById(
   "enable-extension-toggle"
 ) as HTMLInputElement;
@@ -9,7 +14,6 @@ const pitchModeBtn = document.getElementById(
 const rateModeBtn = document.getElementById(
   "rate-mode-btn"
 ) as HTMLButtonElement;
-let currentMode: "pitch" | "rate" = "pitch";
 const appContainer = document.querySelector(".app-container") as HTMLElement;
 const youtubeOnlyMessage = document.getElementById(
   "youtube-only-message"
@@ -26,15 +30,9 @@ const presetButtons: Record<432 | 528, HTMLButtonElement | null> = {
   528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
 };
 
-// Toggle research dropdown when clicked
-if (researchDropdownBtn && researchContent) {
-  researchDropdownBtn.addEventListener("click", () => {
-    // Toggle active classes for styling
-    researchDropdownBtn.classList.toggle("active");
-    researchContent.classList.toggle("active");
-  });
-}
+/* ------------------------ FUNCTIONS --------------------------- */
 
+// TODO is this called once?
 // Check if current page is YouTube
 function checkIfYouTube() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -48,105 +46,79 @@ function checkIfYouTube() {
   });
 }
 
-// Run the check when popup opens
-checkIfYouTube();
-
-// --------- FUNCTIONS ---------
-
-function sendMessageToActiveTab(
-  message: any,
-  callback?: (response: any) => void
-): void {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const activeTab = tabs[0];
-    if (!activeTab?.id) return;
-
-    // Use the correct overload: with or without callback
-    callback
-      ? chrome.tabs.sendMessage(activeTab.id, message, callback)
-      : chrome.tabs.sendMessage(activeTab.id, message);
-  });
-}
-
-/** Sends the same message to the background script and the active tab */
-function sendToAll(message: any): void {
-  sendMessageToActiveTab(message);
-  chrome.runtime.sendMessage(message);
+/**
+ * Sends a patch to the background script
+ * @param patch The patch is an object only with the properties to update
+ */
+function sendPatch(patch: Partial<GlobalState>) {
+  chrome.runtime.sendMessage({ action: "set", patch });
 }
 
 /** Highlights the button that matches the current frequency */
-function highlightButton(freq: 432 | 528 | 440): void {
+function highlightButton(freq: Frequency): void {
   Object.entries(presetButtons).forEach(([hz, btn]) => {
     if (btn) btn.classList.toggle("active", Number(hz) === freq);
   });
 }
 
-/** Asks the background for the stored frequency and updates the UI */
-function refreshHighlight(): void {
-  chrome.runtime.sendMessage({ action: "getFrequency" }, (response) => {
-    highlightButton(response.frequency as 432 | 528 | 440);
+function paintUI(state?: GlobalState) {
+  if (!state) return;
+
+  enableToggle.checked = state.enabled;
+
+  if (state.mode === "pitch") {
+    pitchModeBtn.classList.add("active");
+    rateModeBtn.classList.remove("active");
+  } else {
+    rateModeBtn.classList.add("active");
+    pitchModeBtn.classList.remove("active");
+  }
+
+  highlightButton(state.frequency);
+}
+
+/* ------------------------ EXECUTION --------------------------- */
+
+// Run the check when popup opens
+checkIfYouTube();
+
+chrome.storage.local.get("state", ({ state }) => paintUI(state));
+
+chrome.storage.onChanged.addListener(({ state }) => {
+  if (state?.newValue) paintUI(state.newValue as GlobalState);
+});
+
+// Toggle research dropdown when clicked
+if (researchDropdownBtn && researchContent) {
+  researchDropdownBtn.addEventListener("click", () => {
+    // Toggle active classes for styling
+    researchDropdownBtn.classList.toggle("active");
+    researchContent.classList.toggle("active");
   });
 }
 
-// Is the extension enabled?
-chrome.runtime.sendMessage({ action: "getEnabled" }, (response) => {
-  enableToggle.checked = !!response.enabled;
-});
-
-// Current mode (pitch vs. rate)?
-chrome.runtime.sendMessage({ action: "getMode" }, (response) => {
-  currentMode = response.mode === "rate" ? "rate" : "pitch";
-  pitchModeBtn.classList.toggle("active", currentMode === "pitch");
-  rateModeBtn.classList.toggle("active", currentMode === "rate");
-});
-
-// Current frequency preset?
-refreshHighlight();
-
 // Master enable / disable toggle
-enableToggle.addEventListener("change", () => {
-  const enabled = enableToggle.checked;
-  sendToAll({ enabled });
-  if (!enabled) highlightButton(440);
-});
+enableToggle.addEventListener("change", () =>
+  sendPatch({ enabled: enableToggle.checked })
+);
 
 // Preset buttons (432 Hz and 528 Hz)
 Object.entries(presetButtons).forEach(([hz, btn]) => {
   if (!btn) return;
 
   btn.addEventListener("click", () => {
-    const action = currentMode === "pitch" ? "setPitch" : "setPlaybackRate";
-    const frequency = Number(hz) as 432 | 528;
-    sendToAll({ action, frequency });
-    highlightButton(frequency);
+    const freq = Number(hz) as Frequency;
+    sendPatch({ frequency: freq });
   });
 });
 
 // Reset button → back to 440 Hz
-resetButton.addEventListener("click", () => {
-  sendToAll({ action: "resetPitching" });
-  highlightButton(440);
-});
+resetButton.addEventListener("click", () =>
+  sendPatch({ frequency: A4_STANDARD_FREQUENCY })
+);
 
 // Mode buttons
-pitchModeBtn.addEventListener("click", () => {
-  if (currentMode !== "pitch") {
-    currentMode = "pitch";
-    pitchModeBtn.classList.add("active");
-    rateModeBtn.classList.remove("active");
-    sendToAll({ action: "setMode", mode: "pitch" });
-    refreshHighlight();
-  }
-});
-
-rateModeBtn.addEventListener("click", () => {
-  if (currentMode !== "rate") {
-    currentMode = "rate";
-    rateModeBtn.classList.add("active");
-    pitchModeBtn.classList.remove("active");
-    sendToAll({ action: "setMode", mode: "rate" });
-    refreshHighlight();
-  }
-});
+pitchModeBtn.addEventListener("click", () => sendPatch({ mode: "pitch" }));
+rateModeBtn.addEventListener("click", () => sendPatch({ mode: "rate" }));
 
 export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)
