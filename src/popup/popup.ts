@@ -70,12 +70,12 @@ function paintUI(state?: GlobalState) {
 
   enableToggle.checked = state.enabled;
 
-  if (state.mode === "pitch") {
-    pitchModeBtn.classList.add("active");
-    rateModeBtn.classList.remove("active");
-  } else {
+  if (state.mode === "rate") {
     rateModeBtn.classList.add("active");
     pitchModeBtn.classList.remove("active");
+  } else {
+    pitchModeBtn.classList.add("active");
+    rateModeBtn.classList.remove("active");
   }
 
   _currentFrequency = state.frequency;
@@ -128,7 +128,7 @@ resetButton.addEventListener("click", () =>
 );
 
 // Mode buttons
-pitchModeBtn.addEventListener("click", () => sendPatch({ mode: "pitch" }));
 rateModeBtn.addEventListener("click", () => sendPatch({ mode: "rate" }));
+pitchModeBtn.addEventListener("click", () => sendPatch({ mode: "pitch" }));
 
 export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)
