@@ -277,6 +277,20 @@ function applyState(state: GlobalState): void {
 }
 
 /* ------------------------ EXECUTION --------------------------- */
+
+// Resume AudioContext and re-apply tuning when user returns to the tab
+document.addEventListener("visibilitychange", async () => {
+  if (!document.hidden) {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch (_) {}
+    }
+    if (_extensionEnabled) applyCurrentSettings();
+  }
+});
+
 recalculateFactors();
 
 /* Load any previously persisted values */
