@@ -126,7 +126,9 @@ const isVideoPlaying = (video: HTMLVideoElement): boolean =>
 function waitForTheVideoToPlay(video: HTMLVideoElement) {
   if (!_listenerMap.has(video)) {
     const onPlay = () => tuneVideo(video);
+    const onLoaded = () => tuneVideo(video);
     video.addEventListener("playing", onPlay);
+    video.addEventListener("loadeddata", onLoaded);
     video.addEventListener("ended", () => disconnectSoundtouch(video), {
       once: true,
     });
