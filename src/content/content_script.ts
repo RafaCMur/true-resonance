@@ -127,15 +127,9 @@ function waitForTheVideoToPlay(video: HTMLVideoElement) {
   if (!_listenerMap.has(video)) {
     const onPlay = () => tuneVideo(video);
     video.addEventListener("playing", onPlay);
-    video.addEventListener(
-      "ended",
-      () => {
-        video.removeEventListener("playing", onPlay);
-        disconnectSoundtouch(video);
-        _listenerMap.delete(video);
-      },
-      { once: true }
-    );
+    video.addEventListener("ended", () => disconnectSoundtouch(video), {
+      once: true,
+    });
     _listenerMap.set(video, onPlay);
   }
 
