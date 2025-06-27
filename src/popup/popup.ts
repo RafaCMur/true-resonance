@@ -25,6 +25,8 @@ const researchContent = document.getElementById(
   "research-content"
 ) as HTMLElement;
 
+let _currentFrequency: Frequency = 440;
+
 const presetButtons: Record<300 | 432 | 528 | 680, HTMLButtonElement | null> = {
   300: document.getElementById("pitch-300-btn") as HTMLButtonElement,
   432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
@@ -76,6 +78,7 @@ function paintUI(state?: GlobalState) {
     pitchModeBtn.classList.remove("active");
   }
 
+  _currentFrequency = state.frequency;
   highlightButton(state.frequency);
 }
 
@@ -100,9 +103,13 @@ if (researchDropdownBtn && researchContent) {
 }
 
 // Master enable / disable toggle
-enableToggle.addEventListener("change", () =>
-  sendPatch({ enabled: enableToggle.checked })
-);
+enableToggle.addEventListener("change", () => {
+  if (enableToggle.checked) {
+    sendPatch({ enabled: true, frequency: _currentFrequency });
+  } else {
+    sendPatch({ enabled: false });
+  }
+});
 
 // Preset buttons (432 Hz and 528 Hz)
 Object.entries(presetButtons).forEach(([hz, btn]) => {
@@ -110,6 +117,7 @@ Object.entries(presetButtons).forEach(([hz, btn]) => {
 
   btn.addEventListener("click", () => {
     const freq = Number(hz) as Frequency;
+    _currentFrequency = freq;
     sendPatch({ frequency: freq });
   });
 });
