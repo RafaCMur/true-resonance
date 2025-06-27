@@ -25,9 +25,11 @@ const researchContent = document.getElementById(
   "research-content"
 ) as HTMLElement;
 
-const presetButtons: Record<432 | 528, HTMLButtonElement | null> = {
+const presetButtons: Record<300 | 432 | 528 | 680, HTMLButtonElement | null> = {
+  300: document.getElementById("pitch-300-btn") as HTMLButtonElement,
   432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
   528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
+  680: document.getElementById("pitch-680-btn") as HTMLButtonElement,
 };
 
 /* ------------------------ FUNCTIONS --------------------------- */
