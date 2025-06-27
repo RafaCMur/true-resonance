@@ -1,5 +1,9 @@
-import { WORKLET_PATH } from "../shared/constants";
-import { Frequency, Mode, SoundtouchNodes } from "../shared/types";
+import {
+  A4_STANDARD_FREQUENCY,
+  C5_STANDARD_FREQUENCY,
+  WORKLET_PATH,
+} from "../shared/constants";
+import { Frequency, GlobalState, Mode, SoundtouchNodes } from "../shared/types";
 
 let _extensionEnabled = false; // extension is disabled by default
 let _observer: MutationObserver | null;
@@ -8,8 +12,7 @@ let _currentPlaybackRate = 1;
 let _currentPitch = 1; // Pitch offset from base frequency. Example 432 / 440 = 0.98
 let _audioCtx: AudioContext | null = null;
 let _globalAudioProcessor: AudioWorkletNode | null = null;
-let _targetFrequency: Frequency = 440;
-let _baseFrequency = 440;
+let _targetFrequency: Frequency = A4_STANDARD_FREQUENCY;
 let _mode: Mode = "pitch";
 let _isSoundtouchInit = false;
 
@@ -97,8 +100,13 @@ async function resetSoundTouch(): Promise<void> {
   _isSoundtouchInit = false;
 }
 
+function getReferenceFreq(target: Frequency): number {
+  if (target === 528) return C5_STANDARD_FREQUENCY; // 528 is the reference for C5 which is tuned originally to 523.25
+  return A4_STANDARD_FREQUENCY;
+}
+
 function recalculateFactors() {
-  const factor = _targetFrequency / _baseFrequency; // 432→0.982…
+  const factor = _targetFrequency / getReferenceFreq(_targetFrequency); // 432→0.982…
   if (_mode === "pitch") {
     _currentPitch = factor;
     _currentPlaybackRate = 1;
@@ -118,16 +126,12 @@ const isVideoPlaying = (video: HTMLVideoElement): boolean =>
 function waitForTheVideoToPlay(video: HTMLVideoElement) {
   if (!_listenerMap.has(video)) {
     const onPlay = () => tuneVideo(video);
+    const onLoaded = () => tuneVideo(video);
     video.addEventListener("playing", onPlay);
-    video.addEventListener(
-      "ended",
-      () => {
-        video.removeEventListener("playing", onPlay);
-        disconnectSoundtouch(video);
-        _listenerMap.delete(video);
-      },
-      { once: true }
-    );
+    video.addEventListener("loadeddata", onLoaded);
+    video.addEventListener("ended", () => disconnectSoundtouch(video), {
+      once: true,
+    });
     _listenerMap.set(video, onPlay);
   }
 
@@ -259,61 +263,45 @@ function disconnectAllVideos(): void {
   _listenerMap.clear();
 }
 
-/* ------------------------ EXECUTION --------------------------- */
-recalculateFactors();
-
-// Ask background if extension is enabled
-chrome.runtime.sendMessage({ action: "getEnabled" }, ({ enabled }) => {
-  _extensionEnabled = enabled;
-  if (enabled) {
+function applyState(state: GlobalState): void {
+  _extensionEnabled = state.enabled;
+  _mode = state.mode;
+  _targetFrequency = state.frequency;
+  recalculateFactors();
+  if (_extensionEnabled) {
     initVideoObservers();
+    applyCurrentSettings();
+  } else {
+    disconnectAllVideos();
+    _targetFrequency = 440;
+    resetSoundTouch();
+  }
+}
+
+/* ------------------------ EXECUTION --------------------------- */
+
+// Resume AudioContext and re-apply tuning when user returns to the tab
+document.addEventListener("visibilitychange", async () => {
+  if (!document.hidden) {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch (_) {}
+    }
+    if (_extensionEnabled) applyCurrentSettings();
   }
 });
 
-// Listen for messages from the background or popup
-chrome.runtime.onMessage.addListener(async (msg, _s, send) => {
-  /* ----- Toggle ON / OFF -------------------------- */
-  if (msg.enabled !== undefined && msg.enabled !== null) {
-    _extensionEnabled = msg.enabled;
+recalculateFactors();
 
-    if (!_extensionEnabled) {
-      await resetSoundTouch();
-      disconnectAllVideos();
-      _targetFrequency = 440;
-      recalculateFactors();
-    } else {
-      initVideoObservers();
-    }
-    send?.({ success: true });
-    return;
-  }
+/* Load any previously persisted values */
+chrome.storage.local.get("state", ({ state }) => {
+  if (state) applyState(state as GlobalState);
+});
 
-  /* ----- Change mode -------------------------- */
-  if (msg.action === "setMode") {
-    _mode = msg.mode;
-    recalculateFactors();
-    if (_extensionEnabled) applyCurrentSettings();
-    send?.({ success: true });
-    return;
-  }
-
-  /* ----- Change pitch ------------------------- */
-  if (msg.action === "setPitch" || msg.action === "setPlaybackRate") {
-    _targetFrequency = msg.frequency as 432 | 528 | 440;
-    recalculateFactors();
-    if (_extensionEnabled) applyCurrentSettings();
-    send?.({ success: true });
-    return;
-  }
-
-  /* ----- Reset pitch/rate --------------------- */
-  if (msg.action === "resetPitching") {
-    _targetFrequency = 440;
-    recalculateFactors();
-    if (_extensionEnabled) applyCurrentSettings();
-    send?.({ success: true });
-    return;
-  }
+chrome.storage.onChanged.addListener(({ state }) => {
+  if (state?.newValue) applyState(state.newValue as GlobalState);
 });
 
 export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)
