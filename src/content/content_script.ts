@@ -13,7 +13,7 @@ let _currentPitch = 1; // Pitch offset from base frequency. Example 432 / 440 = 
 let _audioCtx: AudioContext | null = null;
 let _globalAudioProcessor: AudioWorkletNode | null = null;
 let _targetFrequency: Frequency = A4_STANDARD_FREQUENCY;
-let _mode: Mode = "pitch";
+let _mode: Mode = "rate"; // Rate is default mode
 let _isSoundtouchInit = false;
 
 const _soundtouchMap = new Map<HTMLVideoElement, SoundtouchNodes>();
@@ -107,13 +107,12 @@ function getReferenceFreq(target: Frequency): number {
 
 function recalculateFactors() {
   const factor = _targetFrequency / getReferenceFreq(_targetFrequency); // 432→0.982…
-  if (_mode === "pitch") {
-    _currentPitch = factor;
-    _currentPlaybackRate = 1;
-  } else {
-    // "rate"
+  if (_mode === "rate") {
     _currentPitch = 1;
     _currentPlaybackRate = factor;
+  } else {
+    _currentPlaybackRate = 1;
+    _currentPitch = factor;
   }
 }
 
