@@ -8,8 +8,15 @@ let state: GlobalState = {
 };
 
 // Load any previously persisted values so they survive service-worker restarts
+let _initialized = false;
+const _queue: Array<{ patch: Partial<GlobalState> }> = [];
+
 chrome.storage.local.get("state", (res) => {
   if (res.state) state = res.state;
+  _initialized = true;
+  // flush any queued patches
+  _queue.forEach(({ patch }) => setState(patch));
+  _queue.length = 0;
 });
 
 // Saves the current state to chrome local storage
@@ -19,12 +26,20 @@ function persistState() {
 
 // Updates the state and persists it
 function setState(patch: Partial<GlobalState>) {
+  console.log("[BG] incoming patch", patch);
   state = { ...state, ...patch };
+  console.log("[BG] prev state", { ...state });
   persistState();
+  console.log("[BG] new state", state);
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.action === "set" && typeof msg.patch === "object") {
+    if (!_initialized) {
+      _queue.push({ patch: msg.patch });
+      sendResponse?.({ queued: true });
+      return;
+    }
     setState(msg.patch);
     sendResponse({ ok: true });
     return;
