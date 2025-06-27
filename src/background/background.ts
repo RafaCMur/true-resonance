@@ -26,11 +26,8 @@ function persistState() {
 
 // Updates the state and persists it
 function setState(patch: Partial<GlobalState>) {
-  console.log("[BG] incoming patch", patch);
   state = { ...state, ...patch };
-  console.log("[BG] prev state", { ...state });
   persistState();
-  console.log("[BG] new state", state);
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
