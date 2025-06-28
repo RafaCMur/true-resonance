@@ -1,4 +1,4 @@
-export type Frequency = 300 | 432 | 440 | 528 | 680;
+export type Frequency = 432 | 440 | 528;
 export type Mode = "rate" | "pitch";
 
 export interface SoundtouchNodes {
