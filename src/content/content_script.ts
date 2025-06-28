@@ -21,9 +21,17 @@ const _listenerMap = new Map<HTMLVideoElement, () => void>();
 
 /* ------------------------ FUNCTIONS --------------------------- */
 
-function getAudioContext() {
-  if (!_audioCtx) {
+function getAudioContext(): AudioContext {
+  // If context doesn't exist or was closed by browser, create a fresh one
+  if (!_audioCtx || _audioCtx.state === "closed") {
     _audioCtx = new AudioContext();
+
+    // Any previous global processor / modules need to be recreated
+    _globalAudioProcessor = null;
+    _isSoundtouchInit = false;
+
+    // The old MediaElementSourceNodes are bound to the old context → clear map
+    _soundtouchMap.clear();
   }
   return _audioCtx;
 }
@@ -172,9 +180,20 @@ function changePitch(pitch: number): void {
     .setValueAtTime(pitch, _audioCtx.currentTime);
 }
 
+async function ensureActiveAudioChain(): Promise<void> {
+  const ctx = getAudioContext();
+
+  if (ctx.state === "suspended") {
+    try {
+      await ctx.resume();
+    } catch (_) {}
+  }
+}
+
 async function tuneVideo(video: HTMLVideoElement): Promise<void> {
   if (!_extensionEnabled) return;
 
+  await ensureActiveAudioChain();
   await connectSoundtouch(video);
 
   if (_mode === "rate") {
@@ -282,12 +301,7 @@ function applyState(state: GlobalState): void {
 // Resume AudioContext and re-apply tuning when user returns to the tab
 document.addEventListener("visibilitychange", async () => {
   if (!document.hidden) {
-    const ctx = getAudioContext();
-    if (ctx.state === "suspended") {
-      try {
-        await ctx.resume();
-      } catch (_) {}
-    }
+    await ensureActiveAudioChain();
     if (_extensionEnabled) applyCurrentSettings();
   }
 });
