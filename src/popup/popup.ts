@@ -36,8 +36,7 @@ const presetButtons: Record<300 | 432 | 528 | 680, HTMLButtonElement | null> = {
 
 /* ------------------------ FUNCTIONS --------------------------- */
 
-// TODO is this called once?
-// Check if current page is YouTube
+// Check if current page is YouTube (called once on popup load)
 function checkIfYouTube() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const activeTab = tabs[0];
