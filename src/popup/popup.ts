@@ -25,13 +25,11 @@ const researchContent = document.getElementById(
   "research-content"
 ) as HTMLElement;
 
-let _currentFrequency: Frequency = 440;
+let _currentFrequency: Frequency = A4_STANDARD_FREQUENCY;
 
-const presetButtons: Record<300 | 432 | 528 | 680, HTMLButtonElement | null> = {
-  300: document.getElementById("pitch-300-btn") as HTMLButtonElement,
+const presetButtons: Record<432 | 528, HTMLButtonElement | null> = {
   432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
   528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
-  680: document.getElementById("pitch-680-btn") as HTMLButtonElement,
 };
 
 /* ------------------------ FUNCTIONS --------------------------- */

@@ -291,7 +291,7 @@ function applyState(state: GlobalState): void {
     applyCurrentSettings();
   } else {
     disconnectAllVideos();
-    _targetFrequency = 440;
+    _targetFrequency = A4_STANDARD_FREQUENCY;
     resetSoundTouch();
   }
 }
