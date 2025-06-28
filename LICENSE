@@ -1,0 +1,79 @@
+True Resonance™ – Open-Source Edition
+Copyright © 2025 Rafa CMur <rafacmurdev@gmail.com>
+
+SPDX-License-Identifier: AGPL-3.0-or-later
+
+====================================================================
+SUMMARY
+====================================================================
+This software is released under the GNU Affero General Public License
+version 3.0 or any later compatible version (AGPL-3.0-or-later).
+
+• You may use, modify, and redistribute this software—including for
+commercial purposes—**provided that** you release the complete source
+code of your derivative work under the same AGPL license **and** keep
+the attribution set out below.
+
+• If you wish to incorporate the code without disclosing your changes
+or wish to use the name “True Resonance™” or its logos in a way that
+suggests official endorsement, contact: <rafacmurdev@gmail.com> for
+a commercial licence.
+
+The full text of the AGPL v3 begins in the “COPYING” section below.
+
+====================================================================
+ADDITIONAL TERMS (AGPL §7) — ATTRIBUTION AND TRADEMARK
+====================================================================
+A. **Mandatory Attribution**  
+ Any copy, fork, or public deployment **must** display the following
+notice in a visible part of its user interface (e.g., “About” dialog,
+“Settings → Credits” page, or equivalent).  
+ You may translate the phrase “Based on” but **must not** alter the
+project name or URL:
+
+       Based on True Resonance™ © 2025 Rafa CMur
+       https://github.com/RafaCMur/true-resonance
+
+B. **No Trademark Grant**  
+ This copyright licence does **not** grant any trademark rights to
+the name “True Resonance™”, its logos, or iconography.  
+ Any use liable to cause confusion about origin, affiliation, or
+sponsorship requires prior written permission from the trademark
+holder. Unauthorised use may constitute trademark infringement
+under applicable law.
+
+C. **No Further Restrictions**  
+ Except for clauses A and B above, no additional terms are imposed;
+in all other respects the AGPL v3 governs.
+
+====================================================================
+WARRANTY DISCLAIMER
+====================================================================
+THE SOFTWARE IS PROVIDED **“AS IS”**, WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+====================================================================
+THIRD-PARTY COMPONENT NOTICE
+====================================================================
+This project bundles the SoundTouch library by Olli Parviainen,
+licensed under the GNU LGPL v2.1. When distributing a build that
+**statically links** SoundTouch, you must provide relinkable object
+files or an equivalent mechanism, as required by LGPL §6.
+
+Other third-party components remain under their own licences; see the
+file `NOTICE` for details.
+
+====================================================================
+COPYING
+====================================================================
+GNU AFFERO GENERAL PUBLIC LICENSE
+Version 3, 19 November 2007
+
+---
+
+[Insert the complete, unmodified text of the AGPL-3.0 here.]

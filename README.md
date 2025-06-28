@@ -35,9 +35,9 @@ Audio processing powered by the [SoundTouch AudioWorklet](https://github.com/cut
 
 ## License
 
-The source code of **True Resonance** is released under the **True Resonance Non-Commercial License 1.0** (see `LICENSE`).
+The source code of **True Resonance** is released under the **GNU Affero General Public License v3.0 or later** (see `LICENSE`).
 
-• You are free to read, modify and redistribute the code **for non-commercial purposes**.
-• Any commercial or revenue-generating use requires prior written permission from the author.
+Commercial use is allowed **provided that** the entire derivative work is also released under the AGPL.  
+If you need to embed the code without disclosing your modifications, please contact <rafacmurdev@gmail.com> for a commercial licence.
 
-Third-party components retain their original licenses. In particular, **SoundTouch** is distributed under the **LGPL-2.1** (license file included in `node_modules/@soundtouchjs/audio-worklet/`).
+Third-party components keep their original licences. In particular, **SoundTouch** is distributed under the **LGPL-2.1** (see `https://github.com/cutterbl/soundtouchjs-audio-worklet`).
