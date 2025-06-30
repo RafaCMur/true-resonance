@@ -3,7 +3,7 @@ import { Frequency, GlobalState } from "../shared/types";
 
 let state: GlobalState = {
   enabled: false,
-  mode: "rate",
+  mode: "pitch",
   frequency: A4_STANDARD_FREQUENCY,
 };
 

@@ -13,7 +13,7 @@ let _currentPitch = 1; // Pitch offset from base frequency. Example 432 / 440 = 
 let _audioCtx: AudioContext | null = null;
 let _globalAudioProcessor: AudioWorkletNode | null = null;
 let _targetFrequency: Frequency = A4_STANDARD_FREQUENCY;
-let _mode: Mode = "rate"; // Rate is default mode
+let _mode: Mode = "pitch"; // Pitch is default mode
 let _isSoundtouchInit = false;
 
 const _soundtouchMap = new Map<HTMLVideoElement, SoundtouchNodes>();
