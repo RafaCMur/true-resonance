@@ -1,128 +1,24 @@
+import { A4_STANDARD_FREQUENCY } from "../shared/constants";
+import { GlobalState } from "../shared/types";
 import {
-  A4_STANDARD_FREQUENCY,
-  C5_STANDARD_FREQUENCY,
-  WORKLET_PATH,
-} from "../shared/constants";
-import { Frequency, GlobalState, Mode, SoundtouchNodes } from "../shared/types";
+  changePitch,
+  changePlayBackRate,
+  connectSoundtouch,
+  disablePitchPreservation,
+  disconnectSoundtouch,
+  enablePitchPreservation,
+  ensureActiveAudioChain,
+  resetSoundTouch,
+} from "./soundtouch";
+import { getState, recalculateFactors, setMode, setFrequency } from "./state";
 
 let _extensionEnabled = false; // extension is disabled by default
 let _observer: MutationObserver | null;
 let _isObserving = false;
-let _currentPlaybackRate = 1;
-let _currentPitch = 1; // Pitch offset from base frequency. Example 432 / 440 = 0.98
-let _audioCtx: AudioContext | null = null;
-let _globalAudioProcessor: AudioWorkletNode | null = null;
-let _targetFrequency: Frequency = A4_STANDARD_FREQUENCY;
-let _mode: Mode = "rate"; // Rate is default mode
-let _isSoundtouchInit = false;
 
-const _soundtouchMap = new Map<HTMLVideoElement, SoundtouchNodes>();
-const _listenerMap = new Map<HTMLVideoElement, () => void>();
+const _videoListenerMap = new Map<HTMLVideoElement, () => void>();
 
 /* ------------------------ FUNCTIONS --------------------------- */
-
-function getAudioContext(): AudioContext {
-  // If context doesn't exist or was closed by browser, create a fresh one
-  if (!_audioCtx || _audioCtx.state === "closed") {
-    _audioCtx = new AudioContext();
-
-    // Any previous global processor / modules need to be recreated
-    _globalAudioProcessor = null;
-    _isSoundtouchInit = false;
-
-    // The old MediaElementSourceNodes are bound to the old context → clear map
-    _soundtouchMap.clear();
-  }
-  return _audioCtx;
-}
-
-async function getProcessor(): Promise<AudioWorkletNode> {
-  if (_globalAudioProcessor) return _globalAudioProcessor;
-
-  const ctx = getAudioContext();
-
-  if (!_isSoundtouchInit) {
-    await ctx.audioWorklet.addModule(WORKLET_PATH);
-    _isSoundtouchInit = true;
-  }
-
-  _globalAudioProcessor = new AudioWorkletNode(ctx, "soundtouch-processor");
-  _globalAudioProcessor.connect(ctx.destination);
-  return _globalAudioProcessor;
-}
-
-/**
- * Get the MediaElementAudioSourceNode and AudioWorkletNode for a video element.
- * If they don't exist, create them.
- */
-function getSoundtouchNodes(video: HTMLVideoElement): SoundtouchNodes {
-  let nodes = _soundtouchMap.get(video);
-  if (!nodes) {
-    const src = getAudioContext().createMediaElementSource(video);
-    nodes = { src, isSoundtouchConnected: false };
-    _soundtouchMap.set(video, nodes);
-  }
-  return nodes;
-}
-
-async function connectSoundtouch(video: HTMLVideoElement) {
-  const ctx = getAudioContext();
-  if (ctx.state === "suspended" || (ctx.state as any) === "interrupted") {
-    await ctx.resume();
-  }
-
-  const { src, isSoundtouchConnected } = getSoundtouchNodes(video);
-  if (isSoundtouchConnected) return; // ya está
-
-  const processor = await getProcessor(); // <— global
-  try {
-    src.disconnect();
-  } catch (_) {}
-
-  src.connect(processor);
-  getSoundtouchNodes(video).isSoundtouchConnected = true;
-}
-
-function disconnectSoundtouch(video: HTMLVideoElement) {
-  const entry = _soundtouchMap.get(video);
-  if (!entry || !entry.isSoundtouchConnected) return;
-
-  const { src } = entry;
-  try {
-    src.disconnect();
-  } catch (_) {}
-  src.connect(getAudioContext().destination);
-
-  entry.isSoundtouchConnected = false;
-}
-
-async function resetSoundTouch(): Promise<void> {
-  for (const [video, nodes] of _soundtouchMap) {
-    disconnectSoundtouch(video);
-    nodes.isSoundtouchConnected = false;
-  }
-  if (_globalAudioProcessor) {
-    _globalAudioProcessor.disconnect();
-    _globalAudioProcessor = null;
-  }
-  _isSoundtouchInit = false;
-}
-
-function getReferenceFreq(target: Frequency): number {
-  if (target === 528) return C5_STANDARD_FREQUENCY; // 528 is the reference for C5 which is tuned originally to 523.25
-  return A4_STANDARD_FREQUENCY;
-}
-
-function recalculateFactors() {
-  const factor = _targetFrequency / getReferenceFreq(_targetFrequency); // 432→0.982…
-  if (_mode === "rate") {
-    _currentPitch = 1;
-    _currentPlaybackRate = factor;
-  } else {
-    _currentPlaybackRate = 1;
-    _currentPitch = factor;
-  }
-}
 
 const isVideoPlaying = (video: HTMLVideoElement): boolean =>
   !video.paused &&
@@ -130,8 +26,9 @@ const isVideoPlaying = (video: HTMLVideoElement): boolean =>
   video.currentTime > 0 &&
   video.readyState >= 2;
 
+// Wait for the video to play and then tune it. If the video is already playing, tune it now.
 function waitForTheVideoToPlay(video: HTMLVideoElement) {
-  if (!_listenerMap.has(video)) {
+  if (!_videoListenerMap.has(video)) {
     const onPlay = () => tuneVideo(video);
     const onLoaded = () => tuneVideo(video);
     video.addEventListener("playing", onPlay);
@@ -139,54 +36,11 @@ function waitForTheVideoToPlay(video: HTMLVideoElement) {
     video.addEventListener("ended", () => disconnectSoundtouch(video), {
       once: true,
     });
-    _listenerMap.set(video, onPlay);
+    _videoListenerMap.set(video, onPlay);
   }
 
   if (isVideoPlaying(video)) {
     tuneVideo(video);
-  }
-}
-
-function enablePitchPreservation(video: HTMLVideoElement): void {
-  ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"].forEach(
-    (prop) => {
-      if (prop in video) {
-        (video as any)[prop] = true;
-      }
-    }
-  );
-}
-
-// Disable pitch preservation on a video element for all browsers
-function disablePitchPreservation(video: HTMLVideoElement): void {
-  ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"].forEach(
-    (prop) => {
-      if (prop in video) {
-        (video as any)[prop] = false;
-      }
-    }
-  );
-}
-
-// Change playback rate and disable pitch preservation
-function changePlayBackRate(video: HTMLVideoElement, rate: number): void {
-  video.playbackRate = rate;
-}
-
-function changePitch(pitch: number): void {
-  if (!_audioCtx || !_globalAudioProcessor) return;
-  _globalAudioProcessor.parameters
-    .get("pitch")!
-    .setValueAtTime(pitch, _audioCtx.currentTime);
-}
-
-async function ensureActiveAudioChain(): Promise<void> {
-  const ctx = getAudioContext();
-
-  if (ctx.state === "suspended") {
-    try {
-      await ctx.resume();
-    } catch (_) {}
   }
 }
 
@@ -196,22 +50,22 @@ async function tuneVideo(video: HTMLVideoElement): Promise<void> {
   await ensureActiveAudioChain();
   await connectSoundtouch(video);
 
-  if (_mode === "rate") {
+  if (getState().mode === "rate") {
     changePitch(1);
     disablePitchPreservation(video);
-    changePlayBackRate(video, _currentPlaybackRate);
+    changePlayBackRate(video, getState().currentPlaybackRate);
   } else {
     changePlayBackRate(video, 1);
     enablePitchPreservation(video);
-    changePitch(_currentPitch);
+    changePitch(getState().currentPitch);
   }
 }
 
-/** Re-apply the current mode (rate or pitch) to every <video> on the page */
+// Re-apply the current mode (rate or pitch) to every <video> on the page
 function applyCurrentSettings(): void {
   document.querySelectorAll("video").forEach((video) => {
     // If the video is not already playing, wait for it to play and then tune it
-    if (!_listenerMap.has(video)) {
+    if (!_videoListenerMap.has(video)) {
       waitForTheVideoToPlay(video);
     }
     // But if the video is already playing, tune it now
@@ -241,11 +95,11 @@ function initVideoObservers(): void {
       mutation.removedNodes.forEach((node) => {
         if (node instanceof HTMLVideoElement) {
           disconnectSoundtouch(node);
-          _listenerMap.delete(node);
+          _videoListenerMap.delete(node);
         } else if (node instanceof Element) {
           node.querySelectorAll("video").forEach((v) => {
             disconnectSoundtouch(v);
-            _listenerMap.delete(v);
+            _videoListenerMap.delete(v);
           });
         }
       });
@@ -275,23 +129,23 @@ function disconnectAllVideos(): void {
     enablePitchPreservation(video);
   });
 
-  _listenerMap.forEach((onPlay, video) => {
+  _videoListenerMap.forEach((onPlay, video) => {
     video.removeEventListener("playing", onPlay);
   });
-  _listenerMap.clear();
+  _videoListenerMap.clear();
 }
 
 function applyState(state: GlobalState): void {
   _extensionEnabled = state.enabled;
-  _mode = state.mode;
-  _targetFrequency = state.frequency;
+  setMode(state.mode);
+  setFrequency(state.frequency);
   recalculateFactors();
   if (_extensionEnabled) {
     initVideoObservers();
     applyCurrentSettings();
   } else {
     disconnectAllVideos();
-    _targetFrequency = A4_STANDARD_FREQUENCY;
+    setFrequency(A4_STANDARD_FREQUENCY);
     resetSoundTouch();
   }
 }
@@ -306,13 +160,12 @@ document.addEventListener("visibilitychange", async () => {
   }
 });
 
-recalculateFactors();
-
-/* Load any previously persisted values */
+// Load any previously persisted values
 chrome.storage.local.get("state", ({ state }) => {
   if (state) applyState(state as GlobalState);
 });
 
+// Update state when it changes
 chrome.storage.onChanged.addListener(({ state }) => {
   if (state?.newValue) applyState(state.newValue as GlobalState);
 });
