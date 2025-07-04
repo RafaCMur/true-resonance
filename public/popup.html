@@ -33,10 +33,10 @@
       <div class="mode-toggle">
         <button
           type="button"
-          id="rate-mode-btn"
-          class="mode-button rate-btn active"
+          id="pitch-mode-btn"
+          class="mode-button pitch-btn active"
         >
-          Rate
+          Pitch Only
           <svg
             class="mode-icon"
             stroke="currentColor"
@@ -52,12 +52,12 @@
           </svg>
 
           <span class="tooltip">
-            Tuning by <strong>rate</strong> is very accurate but it also changes
-            the playback speed.
+            Tuning by <strong>Pitch Only</strong> keeps the speed unchanged, but
+            the audio can sound slightly less clean.
           </span>
         </button>
-        <button type="button" id="pitch-mode-btn" class="mode-button pitch-btn">
-          Pitch
+        <button type="button" id="rate-mode-btn" class="mode-button rate-btn">
+          Speed & Pitch
           <svg
             class="mode-icon"
             stroke="currentColor"
@@ -73,8 +73,9 @@
           </svg>
 
           <span class="tooltip">
-            Tuning by <strong>pitch-shift</strong> keeps the speed unchanged,
-            but the audio can sound slightly less clean.
+            Tuning by <strong>Speed & Pitch</strong> is very accurate but it
+            also changes the playback speed and any later speed changes in
+            YouTube will shift the pitch again.
           </span>
         </button>
       </div>
