@@ -76,7 +76,7 @@ function getSoundtouchNodes(video: HTMLVideoElement): SoundtouchNodes {
   let nodes = _soundtouchMap.get(video);
   if (!nodes) {
     const src = getAudioContext().createMediaElementSource(video);
-    nodes = { src, isSoundtouchConnected: false };
+    nodes = { src };
     _soundtouchMap.set(video, nodes);
   }
   return nodes;
@@ -102,35 +102,30 @@ export async function connectSoundtouch(video: HTMLVideoElement) {
     await ctx.resume();
   }
 
-  const { src, isSoundtouchConnected } = getSoundtouchNodes(video);
-  if (isSoundtouchConnected) return; // ya está
+  const { src } = getSoundtouchNodes(video);
 
-  const processor = await getProcessor(); // <— global
+  const processor = await getProcessor();
   try {
     src.disconnect();
   } catch (_) {}
 
   src.connect(processor);
-  getSoundtouchNodes(video).isSoundtouchConnected = true;
 }
 
 export function disconnectSoundtouch(video: HTMLVideoElement) {
   const entry = _soundtouchMap.get(video);
-  if (!entry || !entry.isSoundtouchConnected) return;
+  if (!entry) return;
 
   const { src } = entry;
   try {
     src.disconnect();
   } catch (_) {}
   src.connect(getAudioContext().destination);
-
-  entry.isSoundtouchConnected = false;
 }
 
 export async function resetSoundTouch(): Promise<void> {
-  for (const [video, nodes] of _soundtouchMap) {
+  for (const video of _soundtouchMap.keys()) {
     disconnectSoundtouch(video);
-    nodes.isSoundtouchConnected = false;
   }
   if (_globalAudioProcessor) {
     _globalAudioProcessor.disconnect();

@@ -3,7 +3,6 @@ export type Mode = "rate" | "pitch";
 
 export interface SoundtouchNodes {
   src: MediaElementAudioSourceNode;
-  isSoundtouchConnected: boolean;
 }
 
 export interface GlobalState {
