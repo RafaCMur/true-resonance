@@ -1,11 +1,10 @@
 import { WORKLET_PATH } from "../shared/constants";
-import { SoundtouchNodes } from "../shared/types";
 
 let _audioCtx: AudioContext | null = null;
 export let _globalAudioProcessor: AudioWorkletNode | null = null;
 let _isSoundtouchInit = false;
 
-const _soundtouchMap = new Map<HTMLVideoElement, SoundtouchNodes>();
+const _sourceMap = new Map<HTMLVideoElement, MediaElementAudioSourceNode>();
 
 export function getAudioContext(): AudioContext {
   // If context doesn't exist or was closed by browser, create a fresh one
@@ -17,7 +16,7 @@ export function getAudioContext(): AudioContext {
     _isSoundtouchInit = false;
 
     // The old MediaElementSourceNodes are bound to the old context → clear map
-    _soundtouchMap.clear();
+    _sourceMap.clear();
   }
   return _audioCtx;
 }
@@ -69,17 +68,16 @@ export function disablePitchPreservation(video: HTMLVideoElement): void {
 }
 
 /**
- * Get the MediaElementAudioSourceNode and AudioWorkletNode for a video element.
- * If they don't exist, create them.
+ * Get the MediaElementAudioSourceNode for a video element.
+ * If it doesn't exist, create it.
  */
-function getSoundtouchNodes(video: HTMLVideoElement): SoundtouchNodes {
-  let nodes = _soundtouchMap.get(video);
-  if (!nodes) {
-    const src = getAudioContext().createMediaElementSource(video);
-    nodes = { src };
-    _soundtouchMap.set(video, nodes);
+function getSource(video: HTMLVideoElement): MediaElementAudioSourceNode {
+  let src = _sourceMap.get(video);
+  if (!src) {
+    src = getAudioContext().createMediaElementSource(video);
+    _sourceMap.set(video, src);
   }
-  return nodes;
+  return src;
 }
 
 export function changePitch(value: number): void {
@@ -102,7 +100,7 @@ export async function connectSoundtouch(video: HTMLVideoElement) {
     await ctx.resume();
   }
 
-  const { src } = getSoundtouchNodes(video);
+  const src = getSource(video);
 
   const processor = await getProcessor();
   try {
@@ -113,10 +111,9 @@ export async function connectSoundtouch(video: HTMLVideoElement) {
 }
 
 export function disconnectSoundtouch(video: HTMLVideoElement) {
-  const entry = _soundtouchMap.get(video);
-  if (!entry) return;
+  const src = _sourceMap.get(video);
+  if (!src) return;
 
-  const { src } = entry;
   try {
     src.disconnect();
   } catch (_) {}
@@ -124,7 +121,7 @@ export function disconnectSoundtouch(video: HTMLVideoElement) {
 }
 
 export async function resetSoundTouch(): Promise<void> {
-  for (const video of _soundtouchMap.keys()) {
+  for (const video of _sourceMap.keys()) {
     disconnectSoundtouch(video);
   }
   if (_globalAudioProcessor) {
