@@ -48,13 +48,16 @@ async function tuneVideo(video: HTMLVideoElement): Promise<void> {
   if (!_extensionEnabled) return;
 
   await ensureActiveAudioChain();
-  await connectSoundtouch(video);
 
   if (getState().mode === "rate") {
+    disconnectSoundtouch(video);
+
     changePitch(1);
     disablePitchPreservation(video);
     changePlayBackRate(video, getState().currentPlaybackRate);
   } else {
+    await connectSoundtouch(video);
+
     changePlayBackRate(video, 1);
     enablePitchPreservation(video);
     changePitch(getState().currentPitch);
