@@ -1,4 +1,5 @@
 import { WORKLET_PATH } from "../shared/constants";
+import { MediaElem } from "../shared/types";
 
 let _audioCtx: AudioContext | null = null;
 export let _globalAudioProcessor: AudioWorkletNode | null = null;
@@ -46,22 +47,22 @@ export async function ensureActiveAudioChain(): Promise<void> {
   }
 }
 
-export function enablePitchPreservation(video: HTMLVideoElement): void {
+export function enablePitchPreservation(element: MediaElem): void {
   ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"].forEach(
     (prop) => {
-      if (prop in video) {
-        (video as any)[prop] = true;
+      if (prop in element) {
+        (element as any)[prop] = true;
       }
     }
   );
 }
 
 // Disable pitch preservation on a video element for all browsers
-export function disablePitchPreservation(video: HTMLVideoElement): void {
+export function disablePitchPreservation(element: MediaElem): void {
   ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"].forEach(
     (prop) => {
-      if (prop in video) {
-        (video as any)[prop] = false;
+      if (prop in element) {
+        (element as any)[prop] = false;
       }
     }
   );
@@ -87,11 +88,8 @@ export function changePitch(value: number): void {
     .setValueAtTime(value, getAudioContext().currentTime);
 }
 
-export function changePlayBackRate(
-  video: HTMLVideoElement,
-  rate: number
-): void {
-  video.playbackRate = rate;
+export function changePlayBackRate(media: MediaElem, rate: number): void {
+  media.playbackRate = rate;
 }
 
 export async function connectSoundtouch(video: HTMLVideoElement) {
