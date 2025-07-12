@@ -1,5 +1,5 @@
 import { A4_STANDARD_FREQUENCY } from "../shared/constants";
-import { Frequency, GlobalState } from "../shared/types";
+import { GlobalState } from "../shared/types";
 
 let state: GlobalState = {
   enabled: false,
@@ -39,48 +39,6 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     }
     setState(msg.patch);
     sendResponse({ ok: true });
-    return;
-  }
-
-  if (msg.action === "getEnabled") {
-    sendResponse({ enabled: state.enabled });
-    return; // sync
-  }
-
-  if (msg.action === "getMode") {
-    sendResponse({ mode: state.mode });
-    return; // sync
-  }
-
-  if (msg.action === "getFrequency") {
-    sendResponse({ frequency: state.frequency });
-    return; // sync
-  }
-
-  if (
-    msg.action === "setMode" &&
-    (msg.mode === "rate" || msg.mode === "pitch")
-  ) {
-    setState({ mode: msg.mode });
-    sendResponse({ success: true });
-    return;
-  }
-
-  if (typeof msg.enabled === "boolean") {
-    setState({ enabled: msg.enabled });
-    sendResponse({ success: true });
-    return;
-  }
-
-  if (msg.action === "resetPitching") {
-    setState({ frequency: A4_STANDARD_FREQUENCY });
-    sendResponse({ success: true });
-    return;
-  }
-
-  if (msg.action === "setPitch" || msg.action === "setPlaybackRate") {
-    setState({ frequency: msg.frequency as Frequency });
-    sendResponse({ success: true });
     return;
   }
 
