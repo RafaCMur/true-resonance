@@ -11,9 +11,19 @@ let state: GlobalState = {
 let _initialized = false;
 const _queue: Array<{ patch: Partial<GlobalState> }> = [];
 
+function updateBadge(state: GlobalState): void {
+  if (state.enabled && state.frequency !== A4_STANDARD_FREQUENCY) {
+    chrome.action.setBadgeText({ text: String(state.frequency) });
+    chrome.action.setBadgeBackgroundColor({ color: "#6366f1" });
+  } else {
+    chrome.action.setBadgeText({ text: "" });
+  }
+}
+
 chrome.storage.local.get("state", (res) => {
   if (res.state) state = res.state;
   _initialized = true;
+  updateBadge(state);
   // flush any queued patches
   _queue.forEach(({ patch }) => setState(patch));
   _queue.length = 0;
@@ -28,6 +38,7 @@ function persistState() {
 function setState(patch: Partial<GlobalState>) {
   state = { ...state, ...patch };
   persistState();
+  updateBadge(state);
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
