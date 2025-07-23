@@ -14,12 +14,6 @@ const pitchModeBtn = document.getElementById(
 const rateModeBtn = document.getElementById(
   "rate-mode-btn"
 ) as HTMLButtonElement;
-const researchDropdownBtn = document.getElementById(
-  "research-dropdown-btn"
-) as HTMLButtonElement;
-const researchContent = document.getElementById(
-  "research-content"
-) as HTMLElement;
 
 let _currentFrequency: Frequency = A4_STANDARD_FREQUENCY;
 
@@ -29,7 +23,6 @@ const presetButtons: Record<432 | 528, HTMLButtonElement | null> = {
 };
 
 /* ------------------------ FUNCTIONS --------------------------- */
-
 
 /**
  * Sends a patch to the background script
@@ -65,21 +58,11 @@ function paintUI(state?: GlobalState) {
 
 /* ------------------------ EXECUTION --------------------------- */
 
-
 chrome.storage.local.get("state", ({ state }) => paintUI(state));
 
 chrome.storage.onChanged.addListener(({ state }) => {
   if (state?.newValue) paintUI(state.newValue as GlobalState);
 });
-
-// Toggle research dropdown when clicked
-if (researchDropdownBtn && researchContent) {
-  researchDropdownBtn.addEventListener("click", () => {
-    // Toggle active classes for styling
-    researchDropdownBtn.classList.toggle("active");
-    researchContent.classList.toggle("active");
-  });
-}
 
 // Master enable / disable toggle
 enableToggle.addEventListener("change", () => {
