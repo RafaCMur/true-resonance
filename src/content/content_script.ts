@@ -10,7 +10,13 @@ import {
   ensureActiveAudioChain,
   resetSoundTouch,
 } from "./soundtouch";
-import { getState, recalculateFactors, setMode, setFrequency } from "./state";
+import {
+  calculatePlaybackRate,
+  getState,
+  recalculateFactors,
+  setFrequency,
+  setMode,
+} from "./state";
 
 let _extensionEnabled = false; // extension is disabled by default
 let _observer: MutationObserver | null;
@@ -29,10 +35,8 @@ const isMediaPlaying = (media: MediaElem): boolean =>
 // Wait for the video to play and then tune it. If the video is already playing, tune it now.
 function waitForTheMediaToPlay(media: MediaElem) {
   if (!_mediaListenerMap.has(media)) {
-    const onPlay = () =>
-      media instanceof HTMLVideoElement ? tuneVideo(media) : tuneAudio(media);
-    const onLoaded = () =>
-      media instanceof HTMLVideoElement ? tuneVideo(media) : tuneAudio(media);
+    const onPlay = () => tuneMedia(media);
+    const onLoaded = () => tuneMedia(media);
     media.addEventListener("playing", onPlay);
     media.addEventListener("loadeddata", onLoaded);
     if (media instanceof HTMLVideoElement) {
@@ -44,34 +48,38 @@ function waitForTheMediaToPlay(media: MediaElem) {
   }
 
   if (isMediaPlaying(media)) {
-    media instanceof HTMLVideoElement ? tuneVideo(media) : tuneAudio(media);
+    tuneMedia(media);
   }
 }
 
-async function tuneAudio(audio: HTMLAudioElement): Promise<void> {
+async function tuneMedia(media: MediaElem): Promise<void> {
   if (!_extensionEnabled) return;
-  await ensureActiveAudioChain();
-  disablePitchPreservation(audio);
-  changePlayBackRate(audio, getState().currentPlaybackRate);
-}
-
-async function tuneVideo(video: HTMLVideoElement): Promise<void> {
-  if (!_extensionEnabled) return;
-
   await ensureActiveAudioChain();
 
   if (getState().mode === "rate") {
-    disconnectSoundtouch(video);
-
+    // For rate mode, disconnect SoundTouch and just change playback rate
+    disconnectSoundtouch(media);
     changePitch(1);
-    disablePitchPreservation(video);
-    changePlayBackRate(video, getState().currentPlaybackRate);
+    disablePitchPreservation(media);
+    changePlayBackRate(media, getState().currentPlaybackRate);
   } else {
-    await connectSoundtouch(video);
+    // Try to connect SoundTouch for pitch mode
+    const connected = await connectSoundtouch(media);
 
-    changePlayBackRate(video, 1);
-    enablePitchPreservation(video);
-    changePitch(getState().currentPitch);
+    if (connected) {
+      // SoundTouch connected successfully
+      changePlayBackRate(media, 1);
+      enablePitchPreservation(media);
+      changePitch(getState().currentPitch);
+    } else {
+      // SoundTouch failed (probably CORS), fallback to rate mode
+      console.warn(
+        `Pitch mode not available on ${window.location.hostname}, using rate mode instead`
+      );
+      disconnectSoundtouch(media);
+      disablePitchPreservation(media);
+      changePlayBackRate(media, calculatePlaybackRate());
+    }
   }
 }
 
@@ -84,7 +92,7 @@ function applyCurrentSettings(): void {
       waitForTheMediaToPlay(media);
     } else if (isMediaPlaying(media)) {
       // If it's already playing ensure tuning is applied immediately
-      media instanceof HTMLVideoElement ? tuneVideo(media) : tuneAudio(media);
+      tuneMedia(media);
     }
   });
 }
@@ -109,15 +117,16 @@ function initVideoObservers(): void {
       mutation.addedNodes.forEach(handleNewNode);
 
       mutation.removedNodes.forEach((node) => {
-        if (node instanceof HTMLVideoElement) {
+        if (
+          node instanceof HTMLVideoElement ||
+          node instanceof HTMLAudioElement
+        ) {
           disconnectSoundtouch(node);
           _mediaListenerMap.delete(node);
         } else if (node instanceof Element) {
-          node.querySelectorAll("video,audio").forEach((v) => {
-            if (v instanceof HTMLVideoElement) {
-              disconnectSoundtouch(v);
-              _mediaListenerMap.delete(v);
-            }
+          node.querySelectorAll("video,audio").forEach((media) => {
+            disconnectSoundtouch(media as MediaElem);
+            _mediaListenerMap.delete(media as MediaElem);
           });
         }
       });

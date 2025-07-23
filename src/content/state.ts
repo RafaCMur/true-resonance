@@ -41,3 +41,8 @@ export function getState() {
     currentPitch: _currentPitch,
   };
 }
+
+// Calculate the playback rate needed to achieve the target frequency
+export function calculatePlaybackRate(): number {
+  return _targetFrequency / getReferenceFreq(_targetFrequency);
+}
