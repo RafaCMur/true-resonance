@@ -14,10 +14,6 @@ const pitchModeBtn = document.getElementById(
 const rateModeBtn = document.getElementById(
   "rate-mode-btn"
 ) as HTMLButtonElement;
-const appContainer = document.querySelector(".app-container") as HTMLElement;
-const youtubeOnlyMessage = document.getElementById(
-  "youtube-only-message"
-) as HTMLElement;
 const researchDropdownBtn = document.getElementById(
   "research-dropdown-btn"
 ) as HTMLButtonElement;
@@ -34,18 +30,6 @@ const presetButtons: Record<432 | 528, HTMLButtonElement | null> = {
 
 /* ------------------------ FUNCTIONS --------------------------- */
 
-// Check if current page is YouTube (called once on popup load)
-function checkIfYouTube() {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const activeTab = tabs[0];
-    const url = activeTab?.url || "";
-    const isYouTube = url.includes("youtube.com") || url.includes("youtu.be");
-
-    // Show/hide appropriate elements
-    appContainer.style.display = isYouTube ? "block" : "none";
-    youtubeOnlyMessage.style.display = isYouTube ? "none" : "block";
-  });
-}
 
 /**
  * Sends a patch to the background script
@@ -81,8 +65,6 @@ function paintUI(state?: GlobalState) {
 
 /* ------------------------ EXECUTION --------------------------- */
 
-// Run the check when popup opens
-checkIfYouTube();
 
 chrome.storage.local.get("state", ({ state }) => paintUI(state));
 

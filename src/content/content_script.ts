@@ -1,5 +1,5 @@
 import { A4_STANDARD_FREQUENCY } from "../shared/constants";
-import { GlobalState } from "../shared/types";
+import { GlobalState, MediaElem } from "../shared/types";
 import {
   changePitch,
   changePlayBackRate,
@@ -10,79 +10,100 @@ import {
   ensureActiveAudioChain,
   resetSoundTouch,
 } from "./soundtouch";
-import { getState, recalculateFactors, setMode, setFrequency } from "./state";
+import {
+  calculatePlaybackRate,
+  getState,
+  recalculateFactors,
+  setFrequency,
+  setMode,
+} from "./state";
 
 let _extensionEnabled = false; // extension is disabled by default
 let _observer: MutationObserver | null;
 let _isObserving = false;
 
-const _videoListenerMap = new Map<HTMLVideoElement, () => void>();
+const _mediaListenerMap = new Map<MediaElem, () => void>();
 
 /* ------------------------ FUNCTIONS --------------------------- */
 
-const isVideoPlaying = (video: HTMLVideoElement): boolean =>
-  !video.paused &&
-  !video.ended &&
-  video.currentTime > 0 &&
-  video.readyState >= 2;
+const isMediaPlaying = (media: MediaElem): boolean =>
+  !media.paused &&
+  !media.ended &&
+  media.currentTime > 0 &&
+  media.readyState >= 2;
 
 // Wait for the video to play and then tune it. If the video is already playing, tune it now.
-function waitForTheVideoToPlay(video: HTMLVideoElement) {
-  if (!_videoListenerMap.has(video)) {
-    const onPlay = () => tuneVideo(video);
-    const onLoaded = () => tuneVideo(video);
-    video.addEventListener("playing", onPlay);
-    video.addEventListener("loadeddata", onLoaded);
-    video.addEventListener("ended", () => disconnectSoundtouch(video), {
-      once: true,
-    });
-    _videoListenerMap.set(video, onPlay);
+function waitForTheMediaToPlay(media: MediaElem) {
+  if (!_mediaListenerMap.has(media)) {
+    const onPlay = () => tuneMedia(media);
+    const onLoaded = () => tuneMedia(media);
+    media.addEventListener("playing", onPlay);
+    media.addEventListener("loadeddata", onLoaded);
+    if (media instanceof HTMLVideoElement) {
+      media.addEventListener("ended", () => disconnectSoundtouch(media), {
+        once: true,
+      });
+    }
+    _mediaListenerMap.set(media, onPlay);
   }
 
-  if (isVideoPlaying(video)) {
-    tuneVideo(video);
+  if (isMediaPlaying(media)) {
+    tuneMedia(media);
   }
 }
 
-async function tuneVideo(video: HTMLVideoElement): Promise<void> {
+async function tuneMedia(media: MediaElem): Promise<void> {
   if (!_extensionEnabled) return;
-
   await ensureActiveAudioChain();
 
   if (getState().mode === "rate") {
-    disconnectSoundtouch(video);
-
+    // For rate mode, disconnect SoundTouch and just change playback rate
+    disconnectSoundtouch(media);
     changePitch(1);
-    disablePitchPreservation(video);
-    changePlayBackRate(video, getState().currentPlaybackRate);
+    disablePitchPreservation(media);
+    changePlayBackRate(media, getState().currentPlaybackRate);
   } else {
-    await connectSoundtouch(video);
+    // Try to connect SoundTouch for pitch mode
+    const connected = await connectSoundtouch(media);
 
-    changePlayBackRate(video, 1);
-    enablePitchPreservation(video);
-    changePitch(getState().currentPitch);
+    if (connected) {
+      // SoundTouch connected successfully
+      changePlayBackRate(media, 1);
+      enablePitchPreservation(media);
+      changePitch(getState().currentPitch);
+    } else {
+      // SoundTouch failed (probably CORS), fallback to rate mode
+      console.warn(
+        `Pitch mode not available on ${window.location.hostname}, using rate mode instead`
+      );
+      disconnectSoundtouch(media);
+      disablePitchPreservation(media);
+      changePlayBackRate(media, calculatePlaybackRate());
+    }
   }
 }
 
-// Re-apply the current mode (rate or pitch) to every <video> on the page
+// Re-apply the current mode (rate or pitch) to every <video> or <audio> on the page
 function applyCurrentSettings(): void {
-  document.querySelectorAll("video").forEach((video) => {
-    // If the video is not already playing, wait for it to play and then tune it
-    if (!_videoListenerMap.has(video)) {
-      waitForTheVideoToPlay(video);
+  document.querySelectorAll("video,audio").forEach((el) => {
+    const media = el as MediaElem;
+    // If the element is not already tracked, start listening and tune when ready
+    if (!_mediaListenerMap.has(media)) {
+      waitForTheMediaToPlay(media);
+    } else if (isMediaPlaying(media)) {
+      // If it's already playing ensure tuning is applied immediately
+      tuneMedia(media);
     }
-    // But if the video is already playing, tune it now
-    tuneVideo(video);
   });
 }
 
 // Handle a node added to the DOM: if it's a video, set playback rate; if it contains videos, do the same
 function handleNewNode(node: Node): void {
-  if (node instanceof HTMLVideoElement) {
-    waitForTheVideoToPlay(node);
+  if (node instanceof HTMLVideoElement || node instanceof HTMLAudioElement) {
+    waitForTheMediaToPlay(node);
   } else if (node instanceof Element) {
-    node.querySelectorAll("video").forEach((video) => {
-      waitForTheVideoToPlay(video);
+    node.querySelectorAll("video,audio").forEach((el) => {
+      waitForTheMediaToPlay(el as MediaElem);
     });
   }
 }
@@ -96,13 +117,16 @@ function initVideoObservers(): void {
       mutation.addedNodes.forEach(handleNewNode);
 
       mutation.removedNodes.forEach((node) => {
-        if (node instanceof HTMLVideoElement) {
+        if (
+          node instanceof HTMLVideoElement ||
+          node instanceof HTMLAudioElement
+        ) {
           disconnectSoundtouch(node);
-          _videoListenerMap.delete(node);
+          _mediaListenerMap.delete(node);
         } else if (node instanceof Element) {
-          node.querySelectorAll("video").forEach((v) => {
-            disconnectSoundtouch(v);
-            _videoListenerMap.delete(v);
+          node.querySelectorAll("video,audio").forEach((media) => {
+            disconnectSoundtouch(media as MediaElem);
+            _mediaListenerMap.delete(media as MediaElem);
           });
         }
       });
@@ -118,7 +142,7 @@ function initVideoObservers(): void {
   _isObserving = true;
 }
 
-function disconnectAllVideos(): void {
+function disconnectAllMedia(): void {
   // Stop observing DOM changes
   if (_observer) {
     _observer.disconnect();
@@ -126,16 +150,19 @@ function disconnectAllVideos(): void {
   }
   _isObserving = false;
 
-  // Reset all videos
-  document.querySelectorAll("video").forEach((video) => {
-    video.playbackRate = 1;
-    enablePitchPreservation(video);
+  // Reset all media elements
+  document.querySelectorAll("video,audio").forEach((el) => {
+    const media = el as MediaElem;
+    media.playbackRate = 1;
+    if (media instanceof HTMLVideoElement) {
+      enablePitchPreservation(media);
+    }
   });
 
-  _videoListenerMap.forEach((onPlay, video) => {
-    video.removeEventListener("playing", onPlay);
+  _mediaListenerMap.forEach((onPlay, el) => {
+    el.removeEventListener("playing", onPlay);
   });
-  _videoListenerMap.clear();
+  _mediaListenerMap.clear();
 }
 
 function applyState(state: GlobalState): void {
@@ -147,7 +174,7 @@ function applyState(state: GlobalState): void {
     initVideoObservers();
     applyCurrentSettings();
   } else {
-    disconnectAllVideos();
+    disconnectAllMedia();
     setFrequency(A4_STANDARD_FREQUENCY);
     resetSoundTouch();
   }

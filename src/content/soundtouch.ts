@@ -1,10 +1,11 @@
 import { WORKLET_PATH } from "../shared/constants";
+import { MediaElem } from "../shared/types";
 
 let _audioCtx: AudioContext | null = null;
 export let _globalAudioProcessor: AudioWorkletNode | null = null;
 let _isSoundtouchInit = false;
 
-const _sourceMap = new Map<HTMLVideoElement, MediaElementAudioSourceNode>();
+const _sourceMap = new Map<MediaElem, MediaElementAudioSourceNode>();
 
 export function getAudioContext(): AudioContext {
   // If context doesn't exist or was closed by browser, create a fresh one
@@ -46,36 +47,43 @@ export async function ensureActiveAudioChain(): Promise<void> {
   }
 }
 
-export function enablePitchPreservation(video: HTMLVideoElement): void {
+export function enablePitchPreservation(element: MediaElem): void {
   ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"].forEach(
     (prop) => {
-      if (prop in video) {
-        (video as any)[prop] = true;
+      if (prop in element) {
+        (element as any)[prop] = true;
       }
     }
   );
 }
 
 // Disable pitch preservation on a video element for all browsers
-export function disablePitchPreservation(video: HTMLVideoElement): void {
+export function disablePitchPreservation(element: MediaElem): void {
   ["preservesPitch", "webkitPreservesPitch", "mozPreservesPitch"].forEach(
     (prop) => {
-      if (prop in video) {
-        (video as any)[prop] = false;
+      if (prop in element) {
+        (element as any)[prop] = false;
       }
     }
   );
 }
 
 /**
- * Get the MediaElementAudioSourceNode for a video element.
+ * Get the MediaElementAudioSourceNode for a media element (video or audio).
  * If it doesn't exist, create it.
  */
-function getSource(video: HTMLVideoElement): MediaElementAudioSourceNode {
-  let src = _sourceMap.get(video);
+function getSource(media: MediaElem): MediaElementAudioSourceNode {
+  let src = _sourceMap.get(media);
   if (!src) {
-    src = getAudioContext().createMediaElementSource(video);
-    _sourceMap.set(video, src);
+    try {
+      src = getAudioContext().createMediaElementSource(media);
+      _sourceMap.set(media, src);
+    } catch (error) {
+      console.error("Failed to create MediaElementAudioSourceNode:", error);
+      throw new Error(
+        `CORS error: Cannot create audio source for ${window.location.hostname}`
+      );
+    }
   }
   return src;
 }
@@ -87,31 +95,37 @@ export function changePitch(value: number): void {
     .setValueAtTime(value, getAudioContext().currentTime);
 }
 
-export function changePlayBackRate(
-  video: HTMLVideoElement,
-  rate: number
-): void {
-  video.playbackRate = rate;
+export function changePlayBackRate(media: MediaElem, rate: number): void {
+  media.playbackRate = rate;
 }
 
-export async function connectSoundtouch(video: HTMLVideoElement) {
+export async function connectSoundtouch(media: MediaElem): Promise<boolean> {
   const ctx = getAudioContext();
   if (ctx.state === "suspended" || (ctx.state as any) === "interrupted") {
     await ctx.resume();
   }
 
-  const src = getSource(video);
-
-  const processor = await getProcessor();
   try {
-    src.disconnect();
-  } catch (_) {}
+    const src = getSource(media);
+    const processor = await getProcessor();
 
-  src.connect(processor);
+    try {
+      src.disconnect();
+    } catch (_) {}
+
+    src.connect(processor);
+    return true;
+  } catch (error) {
+    console.warn(
+      `Cannot connect SoundTouch on ${window.location.hostname}:`,
+      error
+    );
+    return false;
+  }
 }
 
-export function disconnectSoundtouch(video: HTMLVideoElement) {
-  const src = _sourceMap.get(video);
+export function disconnectSoundtouch(media: MediaElem) {
+  const src = _sourceMap.get(media);
   if (!src) return;
 
   try {
@@ -121,8 +135,8 @@ export function disconnectSoundtouch(video: HTMLVideoElement) {
 }
 
 export async function resetSoundTouch(): Promise<void> {
-  for (const video of _sourceMap.keys()) {
-    disconnectSoundtouch(video);
+  for (const media of _sourceMap.keys()) {
+    disconnectSoundtouch(media);
   }
   if (_globalAudioProcessor) {
     _globalAudioProcessor.disconnect();

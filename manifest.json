@@ -5,13 +5,14 @@
   "description": "YouTube pitch shifting in real-time.",
   "author": "RafaCMur",
   "permissions": ["activeTab", "storage"],
-  "host_permissions": ["*://*.youtube.com/*"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["*://*.youtube.com/*"],
+      "matches": ["<all_urls>"],
+      "run_at": "document_idle",
       "js": ["content_script.js"]
     }
   ],
