@@ -1,0 +1,13 @@
+{
+  "title": "True Resonance",
+  "subtitle": "Play music in healing frequencies",
+  "pitchOnly": "Pitch Only",
+  "speedPitch": "Speed & Pitch",
+  "resetButton": "Reset to 440 Hz",
+  "footerText": "Free for everyone. Support us!",
+  "contribute": "Contribute",
+  "donate": "Donate",
+  "questions": "Questions?",
+  "tooltipPitchOnly": "Changes only pitch while maintaining original speed",
+  "tooltipSpeedPitch": "Changes both pitch and playback speed"
+}

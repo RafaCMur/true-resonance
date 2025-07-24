@@ -1,0 +1,13 @@
+{
+  "title": "True Resonance",
+  "subtitle": "Transforma el tono. Vive la música",
+  "pitchOnly": "Tono",
+  "speedPitch": "Velocidad",
+  "resetButton": "Restablecer a 440 Hz",
+  "footerText": "Gratis para todos. ¡Apóyanos!",
+  "contribute": "Contribuir",
+  "donate": "Donar",
+  "questions": "¿Preguntas?",
+  "tooltipPitchOnly": "Cambia solo el tono manteniendo la velocidad original",
+  "tooltipSpeedPitch": "Cambia tanto el tono como la velocidad de reproducción"
+}

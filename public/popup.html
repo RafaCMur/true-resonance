@@ -33,16 +33,11 @@
               id="languageBtn"
               title="Language"
             >
-              <img
-                src="images/languaje.svg"
-                alt="Language"
-                width="16"
-                height="16"
-              />
+              EN
             </button>
             <div class="dropdown-menu" id="languageMenu">
-              <button class="dropdown-item active" data-lang="es">ES</button>
-              <button class="dropdown-item" data-lang="en">EN</button>
+              <button class="dropdown-item" data-lang="es">ES</button>
+              <button class="dropdown-item active" data-lang="en">EN</button>
             </div>
           </div>
           <button class="control-btn" id="settingsBtn" title="Settings">
@@ -61,7 +56,9 @@
           <img class="logo" src="images/logo.svg" alt="True Resonance logo" />
           <h2 class="title">True Resonance</h2>
         </div>
-        <p class="subtitle">Play music in healing frequencies</p>
+        <p class="subtitle" data-i18n="subtitle">
+          Play music in healing frequencies
+        </p>
       </header>
 
       <!-- Mode selector: pill segmented control -->
@@ -71,7 +68,7 @@
           id="pitch-mode-btn"
           class="mode-button pitch-btn active"
         >
-          Pitch Only
+          <span data-i18n="pitchOnly">Pitch Only</span>
           <svg
             class="mode-icon"
             stroke="currentColor"
@@ -92,7 +89,7 @@
           </span>
         </button>
         <button type="button" id="rate-mode-btn" class="mode-button rate-btn">
-          Speed & Pitch
+          <span data-i18n="speedPitch">Speed & Pitch</span>
           <svg
             class="mode-icon"
             stroke="currentColor"
@@ -126,12 +123,14 @@
 
       <div class="reset-container">
         <button id="reset-btn" class="btn btn-outline reset-button">
-          Reset to 440 Hz
+          <span data-i18n="resetButton">Reset to 440 Hz</span>
         </button>
       </div>
 
       <footer>
-        <p class="footer-text">Free for everyone. Support us! ☕</p>
+        <p class="footer-text">
+          <span data-i18n="footerText">Free for everyone. Support us!</span> ☕
+        </p>
 
         <div class="footer-buttons">
           <a
@@ -140,7 +139,7 @@
             target="_blank"
             rel="noopener noreferrer"
           >
-            Contribute
+            <span data-i18n="contribute">Contribute</span>
           </a>
 
           <a
@@ -149,11 +148,13 @@
             target="_blank"
             rel="noopener noreferrer"
           >
-            Donate
+            <span data-i18n="donate">Donate</span>
           </a>
         </div>
 
-        <p class="contact-text">Questions? rafacmurdev@gmail.com</p>
+        <p class="contact-text">
+          <span data-i18n="questions">Questions?</span> rafacmurdev@gmail.com
+        </p>
       </footer>
     </div>
 

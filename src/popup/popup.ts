@@ -1,5 +1,6 @@
 import { A4_STANDARD_FREQUENCY } from "../shared/constants";
 import { Frequency, GlobalState } from "../shared/types";
+import { i18n } from "../i18n/i18n";
 
 /* ------------------------ VARIABLES --------------------------- */
 
@@ -54,7 +55,7 @@ function paintUI(state?: GlobalState) {
   if (powerToggle) {
     powerToggle.classList.toggle("active", state.enabled);
   }
-  
+
   // Update legacy toggle if it exists
   if (enableToggle) {
     enableToggle.checked = state.enabled;
@@ -76,8 +77,36 @@ function paintUI(state?: GlobalState) {
 
 chrome.storage.local.get("state", ({ state }) => paintUI(state));
 
-chrome.storage.onChanged.addListener(({ state }) => {
+chrome.storage.onChanged.addListener(({ state, theme, language }) => {
   if (state?.newValue) paintUI(state.newValue as GlobalState);
+
+  // Handle theme changes
+  if (theme?.newValue) {
+    document.documentElement.setAttribute("data-theme", theme.newValue);
+    if (themeToggle) {
+      const updateThemeButton = (isDark: boolean) => {
+        themeToggle.classList.toggle("active", isDark);
+        const icon = themeToggle.querySelector("img");
+        if (icon) {
+          icon.src = isDark
+            ? "images/theme-dark.svg"
+            : "images/theme-light.svg";
+        }
+      };
+      updateThemeButton(theme.newValue === "dark");
+    }
+  }
+
+  // Handle language changes
+  if (language?.newValue) {
+    i18n.loadLanguage(language.newValue).then(() => {
+      updateUI();
+      // Update language button
+      if (languageBtn) {
+        languageBtn.textContent = language.newValue.toUpperCase();
+      }
+    });
+  }
 });
 
 // Top Control Bar Event Listeners
@@ -98,30 +127,33 @@ if (powerToggle) {
 if (themeToggle) {
   // Initialize theme
   const initTheme = () => {
-    const theme = localStorage.getItem('theme') || 'light';
-    document.documentElement.setAttribute('data-theme', theme);
-    updateThemeButton(theme === 'dark');
+    chrome.storage.local.get(["theme"], (result) => {
+      const theme = result.theme || "light";
+      document.documentElement.setAttribute("data-theme", theme);
+      updateThemeButton(theme === "dark");
+    });
   };
-  
+
   const updateThemeButton = (isDark: boolean) => {
-    themeToggle.classList.toggle('active', isDark);
-    const icon = themeToggle.querySelector('img');
+    themeToggle.classList.toggle("active", isDark);
+    const icon = themeToggle.querySelector("img");
     if (icon) {
-      icon.src = isDark ? 'images/theme-dark.svg' : 'images/theme-light.svg';
+      icon.src = isDark ? "images/theme-dark.svg" : "images/theme-light.svg";
     }
   };
-  
+
   const toggleTheme = () => {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const newTheme = isDark ? 'light' : 'dark';
-    
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('theme', newTheme);
-    updateThemeButton(newTheme === 'dark');
+    const isDark =
+      document.documentElement.getAttribute("data-theme") === "dark";
+    const newTheme = isDark ? "light" : "dark";
+
+    document.documentElement.setAttribute("data-theme", newTheme);
+    chrome.storage.local.set({ theme: newTheme });
+    updateThemeButton(newTheme === "dark");
   };
-  
+
   initTheme();
-  themeToggle.addEventListener('click', toggleTheme);
+  themeToggle.addEventListener("click", toggleTheme);
 }
 
 // Language dropdown
@@ -130,31 +162,35 @@ if (languageBtn && languageMenu) {
     e.stopPropagation();
     languageMenu.classList.toggle("show");
   });
-  
+
   // Close dropdown when clicking outside
   document.addEventListener("click", () => {
     languageMenu.classList.remove("show");
   });
-  
+
   // Language selection
   const languageItems = languageMenu.querySelectorAll(".dropdown-item");
-  languageItems.forEach(item => {
-    item.addEventListener("click", (e) => {
+  languageItems.forEach((item) => {
+    item.addEventListener("click", async (e) => {
       e.stopPropagation();
       const lang = (item as HTMLElement).dataset.lang;
-      
-      // Update active state
-      languageItems.forEach(i => i.classList.remove("active"));
-      item.classList.add("active");
-      
-      // Update button text
-      languageBtn.textContent = lang?.toUpperCase() || "ES";
-      
-      // Close dropdown
-      languageMenu.classList.remove("show");
-      
-      // Language change logic will be implemented later
-      console.log("Language changed to:", lang);
+
+      if (lang) {
+        // Update active state
+        languageItems.forEach((i) => i.classList.remove("active"));
+        item.classList.add("active");
+
+        // Update button text
+        languageBtn.textContent = lang.toUpperCase();
+
+        // Close dropdown
+        languageMenu.classList.remove("show");
+
+        // Change language
+        chrome.storage.local.set({ language: lang });
+        await i18n.loadLanguage(lang);
+        updateUI();
+      }
     });
   });
 }
@@ -198,5 +234,37 @@ resetButton.addEventListener("click", () =>
 // Mode buttons
 rateModeBtn.addEventListener("click", () => sendPatch({ mode: "rate" }));
 pitchModeBtn.addEventListener("click", () => sendPatch({ mode: "pitch" }));
+
+/* ------------------------ I18N --------------------------- */
+
+// Function to update UI with current language
+function updateUI() {
+  const elements = document.querySelectorAll("[data-i18n]");
+  elements.forEach((element) => {
+    const key = element.getAttribute("data-i18n");
+    if (key) {
+      element.textContent = i18n.t(key);
+    }
+  });
+}
+
+// Initialize language system
+async function initLanguage() {
+  chrome.storage.local.get(["language"], async (result) => {
+    const currentLang = result.language || "en";
+    await i18n.loadLanguage(currentLang);
+    updateUI();
+
+    // Update language dropdown to show current selection
+    const languageItems = languageMenu?.querySelectorAll(".dropdown-item");
+    languageItems?.forEach((item) => {
+      const lang = (item as HTMLElement).dataset.lang;
+      item.classList.toggle("active", lang === currentLang);
+    });
+  });
+}
+
+// Initialize everything
+initLanguage();
 
 export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)
