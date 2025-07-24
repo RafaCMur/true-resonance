@@ -208,9 +208,9 @@ if (languageBtn && languageMenu) {
 // Settings button
 if (settingsBtn) {
   settingsBtn.addEventListener("click", () => {
-    // Settings logic will be implemented later
-    console.log("Settings clicked");
-    settingsBtn.classList.toggle("active");
+    chrome.tabs.create({
+      url: chrome.runtime.getURL("about.html")
+    });
   });
 }
 
