@@ -1,7 +1,8 @@
 # True Resonance
 
-Chrome extension that lets you retune YouTube videos to popular "healing" frequencies (e.g. 432 Hz, 528 Hz) in real-time.
+Chrome extension that lets you retune music to popular "healing" frequencies (e.g. 432 Hz, 528 Hz) in real-time.
 
+- Supports YouTube videos, YouTube Music, Suno, etc.
 - Pitch-shift or playback-rate modes.
 - Preset buttons and quick reset to standard 440 Hz.
 - Audio chain automatically recovers after tab inactivity.

@@ -1,0 +1,13 @@
+{
+  "title": "True Resonance",
+  "subtitle": "Musica in frequenze di guarigione",
+  "pitchOnly": "Tono",
+  "speedPitch": "Velocità",
+  "resetButton": "Ripristina a 440 Hz",
+  "footerText": "Gratuito per tutti. Sostienici!",
+  "contribute": "Contribuisci",
+  "donate": "Dona",
+  "questions": "Domande?",
+  "tooltipPitchOnly": "Cambia solo il tono mantenendo la velocità originale",
+  "tooltipSpeedPitch": "Cambia sia il tono che la velocità di riproduzione"
+}

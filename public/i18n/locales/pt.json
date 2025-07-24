@@ -1,0 +1,13 @@
+{
+  "title": "True Resonance",
+  "subtitle": "Música em frequências de cura",
+  "pitchOnly": "Tom",
+  "speedPitch": "Velocidade",
+  "resetButton": "Redefinir para 440 Hz",
+  "footerText": "Gratuito para todos. Apoie-nos!",
+  "contribute": "Contribuir",
+  "donate": "Doar",
+  "questions": "Dúvidas?",
+  "tooltipPitchOnly": "Altera apenas o tom mantendo a velocidade original",
+  "tooltipSpeedPitch": "Altera tanto o tom quanto a velocidade de reprodução"
+}

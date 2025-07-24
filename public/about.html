@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>True Resonance - About</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="about.css" />
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <img src="images/logo.svg" alt="True Resonance" class="logo" />
+        <h1>True Resonance</h1>
+        <p>Play music in healing frequencies</p>
+      </header>
+
+      <main>
+        <section class="info-section">
+          <h2>Extension Information</h2>
+          <div class="info-grid">
+            <div class="info-item">
+              <span>Name:</span>
+              <span>True Resonance</span>
+            </div>
+
+            <div class="info-item">
+              <span>Version:</span>
+              <span>1.0.2</span>
+            </div>
+
+            <div class="info-item">
+              <span>Author:</span>
+              <span>RafaCMur</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="links-section">
+          <h2>Links</h2>
+          <div class="links">
+            <a
+              href="https://github.com/RafaCMur/true-resonance"
+              target="_blank"
+              class="link"
+            >
+              GitHub Repository
+            </a>
+            <a
+              href="https://www.paypal.com/donate/?hosted_button_id=TJYW36JX2NY48"
+              target="_blank"
+              class="link"
+            >
+              Support Development
+            </a>
+          </div>
+          <p class="contact">Questions? rafacmurdev@gmail.com</p>
+        </section>
+      </main>
+    </div>
+
+    <script>
+      // Load current settings
+      chrome.storage.local.get(["enabled", "frequency", "mode"], (result) => {
+        document.getElementById("status").textContent = result.enabled
+          ? "Active"
+          : "Inactive";
+        document.getElementById("frequency").textContent =
+          (result.frequency || 440) + " Hz";
+        document.getElementById("mode").textContent =
+          result.mode === "rate" ? "Speed & Pitch" : "Pitch Only";
+      });
+
+      // Reset button
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        if (confirm("Reset all settings to default values?")) {
+          chrome.storage.local.set({
+            enabled: false,
+            mode: "pitch",
+            frequency: 440,
+            language: "en",
+            theme: "light",
+          });
+
+          chrome.runtime.sendMessage({
+            action: "set",
+            patch: { enabled: false, mode: "pitch", frequency: 440 },
+          });
+
+          alert("Settings reset successfully!");
+          location.reload();
+        }
+      });
+    </script>
+  </body>
+</html>

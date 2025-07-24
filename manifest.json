@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "True Resonance",
   "version": "1.0.2",
-  "description": "YouTube pitch shifting in real-time.",
+  "description": "Play music in healing frequencies.",
   "author": "RafaCMur",
   "permissions": ["activeTab", "storage"],
   "host_permissions": ["<all_urls>"],

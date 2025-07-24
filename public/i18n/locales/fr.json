@@ -1,0 +1,13 @@
+{
+  "title": "True Resonance",
+  "subtitle": "Musique en fréquences de guérison",
+  "pitchOnly": "Hauteur",
+  "speedPitch": "Vitesse",
+  "resetButton": "Réinitialiser à 440 Hz",
+  "footerText": "Gratuit pour tous. Soutenez-nous !",
+  "contribute": "Contribuer",
+  "donate": "Faire un don",
+  "questions": "Questions ?",
+  "tooltipPitchOnly": "Change seulement la hauteur en maintenant la vitesse originale",
+  "tooltipSpeedPitch": "Change à la fois la hauteur et la vitesse de lecture"
+}

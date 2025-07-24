@@ -13,21 +13,60 @@
 
   <body>
     <div class="app-container">
+      <!-- Disabled Overlay -->
+      <div class="disabled-overlay" id="disabledOverlay"></div>
+
+      <!-- Top Control Bar -->
+      <div class="top-control-bar">
+        <div class="control-group">
+          <button class="control-btn" id="powerToggle" title="Turn on/off">
+            <img src="images/power.svg" alt="Power" width="16" height="16" />
+          </button>
+          <button class="control-btn" id="themeToggle" title="Toggle theme">
+            <img
+              src="images/theme-light.svg"
+              alt="Theme"
+              width="16"
+              height="16"
+            />
+          </button>
+          <div class="language-dropdown">
+            <button
+              class="control-btn language-btn"
+              id="languageBtn"
+              title="Language"
+            >
+              EN
+            </button>
+            <div class="dropdown-menu" id="languageMenu">
+              <button class="dropdown-item active" data-lang="en">EN</button>
+              <button class="dropdown-item" data-lang="es">ES</button>
+              <button class="dropdown-item" data-lang="pt">PT</button>
+              <button class="dropdown-item" data-lang="fr">FR</button>
+              <button class="dropdown-item" data-lang="de">DE</button>
+              <button class="dropdown-item" data-lang="it">IT</button>
+            </div>
+          </div>
+          <button class="control-btn" id="settingsBtn" title="Settings">
+            <img
+              src="images/settings.svg"
+              alt="Settings"
+              width="16"
+              height="16"
+            />
+          </button>
+        </div>
+      </div>
+
       <header class="header-brand">
         <div class="brand-row">
           <img class="logo" src="images/logo.svg" alt="True Resonance logo" />
           <h2 class="title">True Resonance</h2>
         </div>
-        <p class="subtitle">YouTube pitch shifting in real-time</p>
+        <p class="subtitle" data-i18n="subtitle">
+          Play music in healing frequencies
+        </p>
       </header>
-
-      <div class="toggle-container">
-        <span class="toggle-label">Enable</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="enable-extension-toggle" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
 
       <!-- Mode selector: pill segmented control -->
       <div class="mode-toggle">
@@ -36,7 +75,7 @@
           id="pitch-mode-btn"
           class="mode-button pitch-btn active"
         >
-          Pitch Only
+          <span data-i18n="pitchOnly">Pitch Only</span>
           <svg
             class="mode-icon"
             stroke="currentColor"
@@ -57,7 +96,7 @@
           </span>
         </button>
         <button type="button" id="rate-mode-btn" class="mode-button rate-btn">
-          Speed & Pitch
+          <span data-i18n="speedPitch">Speed & Pitch</span>
           <svg
             class="mode-icon"
             stroke="currentColor"
@@ -91,52 +130,38 @@
 
       <div class="reset-container">
         <button id="reset-btn" class="btn btn-outline reset-button">
-          Reset to 440 Hz
+          <span data-i18n="resetButton">Reset to 440 Hz</span>
         </button>
       </div>
 
       <footer>
-        <p class="footer-text">Adjust YouTube videos to healing frequencies</p>
+        <p class="footer-text">
+          <span data-i18n="footerText">Free for everyone. Support us!</span> ☕
+        </p>
 
-        <div class="dropdown-container">
-          <button id="research-dropdown-btn" class="dropdown-toggle">
-            <span class="dropdown-label">Hey! How can I help you?</span>
-            <span class="dropdown-arrow">▼</span>
-          </button>
+        <div class="footer-buttons">
+          <a
+            class="btn btn-primary primary-link compact"
+            href="https://github.com/RafaCMur/true-resonance"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span data-i18n="contribute">Contribute</span>
+          </a>
 
-          <div id="research-content" class="dropdown-content">
-            <div class="research-text">
-              <p>
-                432 Hz belongs to everyone. We don’t sell it — but you can
-                support us with a coffee 😉.
-              </p>
-              <p>Contact us at:</p>
-              <span class="mail-info"
-                ><strong>rafacmurdev@gmail.com</strong></span
-              >
-            </div>
-
-            <div class="footer-buttons">
-              <a
-                class="btn btn-primary primary-link"
-                href="https://github.com/RafaCMur/true-resonance"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                View on GitHub
-              </a>
-
-              <a
-                class="btn btn-primary primary-link"
-                href="https://www.paypal.com/donate/?hosted_button_id=TJYW36JX2NY48"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Buy me a coffee
-              </a>
-            </div>
-          </div>
+          <a
+            class="btn btn-primary primary-link compact"
+            href="https://www.paypal.com/donate/?hosted_button_id=TJYW36JX2NY48"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span data-i18n="donate">Donate</span>
+          </a>
         </div>
+
+        <p class="contact-text">
+          <span data-i18n="questions">Questions?</span> rafacmurdev@gmail.com
+        </p>
       </footer>
     </div>
 

@@ -1,0 +1,13 @@
+{
+  "title": "True Resonance",
+  "subtitle": "Musik in Heilfrequenzen abspielen",
+  "pitchOnly": "Tonhöhe",
+  "speedPitch": "Tempo",
+  "resetButton": "Auf 440 Hz zurücksetzen",
+  "footerText": "Kostenlos für alle. Unterstützen Sie uns!",
+  "contribute": "Beitragen",
+  "donate": "Spenden",
+  "questions": "Fragen?",
+  "tooltipPitchOnly": "Ändert nur die Tonhöhe bei ursprünglicher Geschwindigkeit",
+  "tooltipSpeedPitch": "Ändert sowohl Tonhöhe als auch Wiedergabegeschwindigkeit"
+}
