@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [2.0.0] - 2025-07-24
+
+### Added
+
+- Add i18n support
+- Make the extension compatible with more platforms (Suno, youtube music, etc)
+
+### Changed
+
+- Redesign the popup completely, new styles and modern look
+
 ## [1.0.2] - 2025-07-08
 
 ### Changed

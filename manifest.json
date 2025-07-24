@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "True Resonance",
-  "version": "1.0.2",
+  "version": "2.0.0",
   "description": "Play music in healing frequencies.",
   "author": "RafaCMur",
   "permissions": ["activeTab", "storage"],
