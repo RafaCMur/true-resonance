@@ -255,6 +255,11 @@ async function initLanguage() {
     await i18n.loadLanguage(currentLang);
     updateUI();
 
+    // Update language button text
+    if (languageBtn) {
+      languageBtn.textContent = currentLang.toUpperCase();
+    }
+
     // Update language dropdown to show current selection
     const languageItems = languageMenu?.querySelectorAll(".dropdown-item");
     languageItems?.forEach((item) => {
