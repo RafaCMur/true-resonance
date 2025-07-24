@@ -96,11 +96,32 @@ if (powerToggle) {
 
 // Theme toggle
 if (themeToggle) {
-  themeToggle.addEventListener("click", () => {
-    // Toggle theme logic will be implemented later
-    console.log("Theme toggle clicked");
-    themeToggle.classList.toggle("active");
-  });
+  // Initialize theme
+  const initTheme = () => {
+    const theme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    updateThemeButton(theme === 'dark');
+  };
+  
+  const updateThemeButton = (isDark: boolean) => {
+    themeToggle.classList.toggle('active', isDark);
+    const icon = themeToggle.querySelector('img');
+    if (icon) {
+      icon.src = isDark ? 'images/theme-dark.svg' : 'images/theme-light.svg';
+    }
+  };
+  
+  const toggleTheme = () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const newTheme = isDark ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    updateThemeButton(newTheme === 'dark');
+  };
+  
+  initTheme();
+  themeToggle.addEventListener('click', toggleTheme);
 }
 
 // Language dropdown
