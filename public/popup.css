@@ -57,7 +57,7 @@
 }
 
 .btn-primary:hover {
-  transform: translateY(-1px);
+  transform: scale(1.03);
   box-shadow: var(--shadow);
 }
 
@@ -69,16 +69,17 @@
 }
 
 .btn-outline:hover {
-  border-color: var(--primary-light);
-  background-color: var(--card-hover);
-  transform: translateY(-1px);
-  box-shadow: var(--shadow);
+  border-color: rgba(99, 102, 241, 0.3);
+  background-color: rgba(99, 102, 241, 0.05);
+  transform: scale(1.02);
+  box-shadow: var(--shadow-sm);
 }
 /* ========================================== */
 
 /* Global theme transitions */
 * {
-  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  transition: background-color 0.25s ease, color 0.25s ease,
+    border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 body {
@@ -166,7 +167,8 @@ body {
 
 .control-btn:hover img {
   opacity: 0.9;
-  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%) hue-rotate(232deg) brightness(97%) contrast(101%);
+  filter: brightness(0) saturate(100%) invert(27%) sepia(51%) saturate(2878%)
+    hue-rotate(232deg) brightness(97%) contrast(101%);
 }
 
 .control-btn.active img {
@@ -181,7 +183,8 @@ body {
 }
 
 [data-theme="dark"] .control-btn:hover img {
-  filter: brightness(0) invert(64%) sepia(42%) saturate(2174%) hue-rotate(219deg);
+  filter: brightness(0) invert(64%) sepia(42%) saturate(2174%)
+    hue-rotate(219deg);
   opacity: 1;
 }
 
