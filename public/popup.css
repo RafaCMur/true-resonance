@@ -184,7 +184,7 @@ body {
   transform: scale(1.05);
 }
 
-.control-btn.active {
+#powerToggle.active {
   background: linear-gradient(
     135deg,
     var(--primary-color),
@@ -195,12 +195,17 @@ body {
   box-shadow: 0 0 12px rgba(99, 102, 241, 0.3);
 }
 
-.control-btn.active:hover {
+#powerToggle.active:hover {
   transform: scale(1.05);
   box-shadow: 0 0 16px rgba(99, 102, 241, 0.4);
 }
 
-/* SVG Icons in Control Buttons */
+#themeToggle.active,
+#settingsBtn.active {
+  background: var(--hover-bg);
+  color: var(--text-primary);
+}
+
 .control-btn img {
   width: 16px;
   height: 16px;
