@@ -13,6 +13,49 @@
 
   <body>
     <div class="app-container">
+      <!-- Top Control Bar -->
+      <div class="top-control-bar">
+        <div class="control-group">
+          <button class="control-btn" id="powerToggle" title="Turn on/off">
+            <img src="images/power.svg" alt="Power" width="16" height="16" />
+          </button>
+          <button class="control-btn" id="themeToggle" title="Toggle theme">
+            <img
+              src="images/theme-light.svg"
+              alt="Theme"
+              width="16"
+              height="16"
+            />
+          </button>
+          <div class="language-dropdown">
+            <button
+              class="control-btn language-btn"
+              id="languageBtn"
+              title="Language"
+            >
+              <img
+                src="images/languaje.svg"
+                alt="Language"
+                width="16"
+                height="16"
+              />
+            </button>
+            <div class="dropdown-menu" id="languageMenu">
+              <button class="dropdown-item active" data-lang="es">ES</button>
+              <button class="dropdown-item" data-lang="en">EN</button>
+            </div>
+          </div>
+          <button class="control-btn" id="settingsBtn" title="Settings">
+            <img
+              src="images/settings-2.svg"
+              alt="Settings"
+              width="16"
+              height="16"
+            />
+          </button>
+        </div>
+      </div>
+
       <header class="header-brand">
         <div class="brand-row">
           <img class="logo" src="images/logo.svg" alt="True Resonance logo" />
@@ -20,14 +63,6 @@
         </div>
         <p class="subtitle">Music tuning in real-time</p>
       </header>
-
-      <div class="toggle-container">
-        <span class="toggle-label">Enable</span>
-        <label class="toggle-switch">
-          <input type="checkbox" id="enable-extension-toggle" />
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
 
       <!-- Mode selector: pill segmented control -->
       <div class="mode-toggle">

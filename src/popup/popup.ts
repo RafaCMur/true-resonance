@@ -3,6 +3,14 @@ import { Frequency, GlobalState } from "../shared/types";
 
 /* ------------------------ VARIABLES --------------------------- */
 
+// Top Control Bar Elements
+const powerToggle = document.getElementById("powerToggle") as HTMLButtonElement;
+const themeToggle = document.getElementById("themeToggle") as HTMLButtonElement;
+const languageBtn = document.getElementById("languageBtn") as HTMLButtonElement;
+const languageMenu = document.getElementById("languageMenu") as HTMLElement;
+const settingsBtn = document.getElementById("settingsBtn") as HTMLButtonElement;
+
+// Legacy toggle (keeping for compatibility)
 const enableToggle = document.getElementById(
   "enable-extension-toggle"
 ) as HTMLInputElement;
@@ -42,7 +50,15 @@ function highlightButton(freq: Frequency): void {
 function paintUI(state?: GlobalState) {
   if (!state) return;
 
-  enableToggle.checked = state.enabled;
+  // Update power toggle
+  if (powerToggle) {
+    powerToggle.classList.toggle("active", state.enabled);
+  }
+  
+  // Update legacy toggle if it exists
+  if (enableToggle) {
+    enableToggle.checked = state.enabled;
+  }
 
   if (state.mode === "rate") {
     rateModeBtn.classList.add("active");
@@ -64,14 +80,83 @@ chrome.storage.onChanged.addListener(({ state }) => {
   if (state?.newValue) paintUI(state.newValue as GlobalState);
 });
 
-// Master enable / disable toggle
-enableToggle.addEventListener("change", () => {
-  if (enableToggle.checked) {
-    sendPatch({ enabled: true, frequency: _currentFrequency });
-  } else {
-    sendPatch({ enabled: false });
-  }
-});
+// Top Control Bar Event Listeners
+
+// Power toggle
+if (powerToggle) {
+  powerToggle.addEventListener("click", () => {
+    const isEnabled = powerToggle.classList.contains("active");
+    if (isEnabled) {
+      sendPatch({ enabled: false });
+    } else {
+      sendPatch({ enabled: true, frequency: _currentFrequency });
+    }
+  });
+}
+
+// Theme toggle
+if (themeToggle) {
+  themeToggle.addEventListener("click", () => {
+    // Toggle theme logic will be implemented later
+    console.log("Theme toggle clicked");
+    themeToggle.classList.toggle("active");
+  });
+}
+
+// Language dropdown
+if (languageBtn && languageMenu) {
+  languageBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    languageMenu.classList.toggle("show");
+  });
+  
+  // Close dropdown when clicking outside
+  document.addEventListener("click", () => {
+    languageMenu.classList.remove("show");
+  });
+  
+  // Language selection
+  const languageItems = languageMenu.querySelectorAll(".dropdown-item");
+  languageItems.forEach(item => {
+    item.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const lang = (item as HTMLElement).dataset.lang;
+      
+      // Update active state
+      languageItems.forEach(i => i.classList.remove("active"));
+      item.classList.add("active");
+      
+      // Update button text
+      languageBtn.textContent = lang?.toUpperCase() || "ES";
+      
+      // Close dropdown
+      languageMenu.classList.remove("show");
+      
+      // Language change logic will be implemented later
+      console.log("Language changed to:", lang);
+    });
+  });
+}
+
+// Settings button
+if (settingsBtn) {
+  settingsBtn.addEventListener("click", () => {
+    // Settings logic will be implemented later
+    console.log("Settings clicked");
+    settingsBtn.classList.toggle("active");
+  });
+}
+
+// Legacy enable/disable toggle (keeping for compatibility)
+if (enableToggle) {
+  enableToggle.addEventListener("change", () => {
+    if (enableToggle.checked) {
+      sendPatch({ enabled: true, frequency: _currentFrequency });
+    } else {
+      sendPatch({ enabled: false });
+    }
+  });
+}
 
 // Preset buttons (432 Hz and 528 Hz)
 Object.entries(presetButtons).forEach(([hz, btn]) => {
