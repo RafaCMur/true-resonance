@@ -11,6 +11,10 @@ const languageBtn = document.getElementById("languageBtn") as HTMLButtonElement;
 const languageMenu = document.getElementById("languageMenu") as HTMLElement;
 const settingsBtn = document.getElementById("settingsBtn") as HTMLButtonElement;
 
+// Disabled overlay
+const disabledOverlay = document.getElementById("disabledOverlay") as HTMLElement;
+const appContainer = document.querySelector(".app-container") as HTMLElement;
+
 // Legacy toggle (keeping for compatibility)
 const enableToggle = document.getElementById(
   "enable-extension-toggle"
@@ -50,6 +54,12 @@ function highlightButton(freq: Frequency): void {
 
 function paintUI(state?: GlobalState) {
   if (!state) return;
+
+  // Update disabled overlay and app container state
+  if (disabledOverlay && appContainer) {
+    disabledOverlay.classList.toggle("show", !state.enabled);
+    appContainer.classList.toggle("disabled", !state.enabled);
+  }
 
   // Update power toggle
   if (powerToggle) {
