@@ -1,7 +1,7 @@
 {
   "name": "true-resonance",
   "version": "1.0.2",
-  "description": "YouTube pitch shifting in real-time.",
+  "description": "Music tuning in real-time.",
   "main": "index.js",
   "type": "module",
   "license": "AGPL-version-3.0",
