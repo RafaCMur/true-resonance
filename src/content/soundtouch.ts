@@ -10,14 +10,19 @@ const _sourceMap = new Map<MediaElem, MediaElementAudioSourceNode>();
 export function getAudioContext(): AudioContext {
   // If context doesn't exist or was closed by browser, create a fresh one
   if (!_audioCtx || _audioCtx.state === "closed") {
-    _audioCtx = new AudioContext();
+    try {
+      _audioCtx = new AudioContext();
 
-    // Any previous global processor / modules need to be recreated
-    _globalAudioProcessor = null;
-    _isSoundtouchInit = false;
+      // Any previous global processor / modules need to be recreated
+      _globalAudioProcessor = null;
+      _isSoundtouchInit = false;
 
-    // The old MediaElementSourceNodes are bound to the old context → clear map
-    _sourceMap.clear();
+      // The old MediaElementSourceNodes are bound to the old context → clear map
+      _sourceMap.clear();
+    } catch (error) {
+      console.warn('True Resonance: AudioContext creation failed (no user gesture or no media on page)', error);
+      throw error;
+    }
   }
   return _audioCtx;
 }
@@ -38,12 +43,20 @@ async function getProcessor(): Promise<AudioWorkletNode> {
 }
 
 export async function ensureActiveAudioChain(): Promise<void> {
-  const ctx = getAudioContext();
+  try {
+    const ctx = getAudioContext();
 
-  if (ctx.state === "suspended") {
-    try {
-      await ctx.resume();
-    } catch (_) {}
+    if (ctx.state === "suspended") {
+      try {
+        await ctx.resume();
+      } catch (error) {
+        console.warn('True Resonance: Failed to resume AudioContext:', error);
+      }
+    }
+  } catch (error) {
+    // AudioContext creation failed, likely no user gesture or no media on page
+    // This is expected on pages without audio/video, so we silently ignore it
+    return;
   }
 }
 

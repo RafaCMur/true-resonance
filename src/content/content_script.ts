@@ -184,9 +184,13 @@ function applyState(state: GlobalState): void {
 
 // Resume AudioContext and re-apply tuning when user returns to the tab
 document.addEventListener("visibilitychange", async () => {
-  if (!document.hidden) {
-    await ensureActiveAudioChain();
-    if (_extensionEnabled) applyCurrentSettings();
+  if (!document.hidden && _extensionEnabled) {
+    // Only resume audio chain if there are media elements on the page
+    const hasMedia = document.querySelectorAll("video, audio").length > 0;
+    if (hasMedia) {
+      await ensureActiveAudioChain();
+    }
+    applyCurrentSettings();
   }
 });
 
