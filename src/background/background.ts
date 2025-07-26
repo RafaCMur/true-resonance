@@ -20,13 +20,36 @@ function updateBadge(state: GlobalState): void {
   }
 }
 
-chrome.storage.local.get("state", (res) => {
-  if (res.state) state = res.state;
-  _initialized = true;
-  updateBadge(state);
-  // flush any queued patches
-  _queue.forEach(({ patch }) => setState(patch));
-  _queue.length = 0;
+// Initialize state and badge
+function initializeExtension() {
+  chrome.storage.local.get("state", (res) => {
+    if (res.state) state = res.state;
+    _initialized = true;
+    updateBadge(state);
+    // flush any queued patches
+    _queue.forEach(({ patch }) => setState(patch));
+    _queue.length = 0;
+  });
+}
+
+// Initialize on startup
+initializeExtension();
+
+// Re-initialize when Chrome starts up
+chrome.runtime.onStartup.addListener(() => {
+  initializeExtension();
+});
+
+// Initialize when extension is installed/updated
+chrome.runtime.onInstalled.addListener(() => {
+  initializeExtension();
+});
+
+// Update badge when switching tabs (ensures badge is always visible)
+chrome.tabs.onActivated.addListener(() => {
+  if (_initialized) {
+    updateBadge(state);
+  }
 });
 
 // Saves the current state to chrome local storage
