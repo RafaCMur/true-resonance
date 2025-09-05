@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## [2.1.0] - 2025-09-05
+
+### Added
+
+- Better error control
+
+### Fixed
+
+- Problems with syncronization between UI and storage
+- Chrome was showing an error in pages with no video or audio elements
+
 ## [2.0.0] - 2025-07-24
 
 ### Added
