@@ -10,6 +10,12 @@ const _sourceMap = new Map<MediaElem, MediaElementAudioSourceNode>();
 export function getAudioContext(): AudioContext {
   // If context doesn't exist or was closed by browser, create a fresh one
   if (!_audioCtx || _audioCtx.state === "closed") {
+    // Check if there are any media elements on the page before creating AudioContext
+    const hasMedia = document.querySelectorAll("video, audio").length > 0;
+    if (!hasMedia) {
+      throw new Error("No media elements found on page");
+    }
+    
     try {
       _audioCtx = new AudioContext();
 
@@ -20,7 +26,8 @@ export function getAudioContext(): AudioContext {
       // The old MediaElementSourceNodes are bound to the old context → clear map
       _sourceMap.clear();
     } catch (error) {
-      console.warn('True Resonance: AudioContext creation failed (no user gesture or no media on page)', error);
+      // AudioContext creation failed - this is expected on pages without media elements
+      // or when there's no user gesture. We silently throw to let callers handle it.
       throw error;
     }
   }
@@ -30,16 +37,21 @@ export function getAudioContext(): AudioContext {
 async function getProcessor(): Promise<AudioWorkletNode> {
   if (_globalAudioProcessor) return _globalAudioProcessor;
 
-  const ctx = getAudioContext();
+  try {
+    const ctx = getAudioContext();
 
-  if (!_isSoundtouchInit) {
-    await ctx.audioWorklet.addModule(WORKLET_PATH);
-    _isSoundtouchInit = true;
+    if (!_isSoundtouchInit) {
+      await ctx.audioWorklet.addModule(WORKLET_PATH);
+      _isSoundtouchInit = true;
+    }
+
+    _globalAudioProcessor = new AudioWorkletNode(ctx, "soundtouch-processor");
+    _globalAudioProcessor.connect(ctx.destination);
+    return _globalAudioProcessor;
+  } catch (error) {
+    // AudioContext creation failed - no media elements on page
+    throw error;
   }
-
-  _globalAudioProcessor = new AudioWorkletNode(ctx, "soundtouch-processor");
-  _globalAudioProcessor.connect(ctx.destination);
-  return _globalAudioProcessor;
 }
 
 export async function ensureActiveAudioChain(): Promise<void> {
@@ -50,7 +62,8 @@ export async function ensureActiveAudioChain(): Promise<void> {
       try {
         await ctx.resume();
       } catch (error) {
-        console.warn('True Resonance: Failed to resume AudioContext:', error);
+        // Failed to resume - this can happen on pages without user interaction
+        // We silently ignore this as it's expected behavior
       }
     }
   } catch (error) {
@@ -113,12 +126,12 @@ export function changePlayBackRate(media: MediaElem, rate: number): void {
 }
 
 export async function connectSoundtouch(media: MediaElem): Promise<boolean> {
-  const ctx = getAudioContext();
-  if (ctx.state === "suspended" || (ctx.state as any) === "interrupted") {
-    await ctx.resume();
-  }
-
   try {
+    const ctx = getAudioContext();
+    if (ctx.state === "suspended" || (ctx.state as any) === "interrupted") {
+      await ctx.resume();
+    }
+
     const src = getSource(media);
     const processor = await getProcessor();
 
@@ -129,10 +142,15 @@ export async function connectSoundtouch(media: MediaElem): Promise<boolean> {
     src.connect(processor);
     return true;
   } catch (error) {
-    console.warn(
-      `Cannot connect SoundTouch on ${window.location.hostname}:`,
-      error
-    );
+    // Only show warning if there are media elements on the page
+    // If no media elements, this error is expected and we silently ignore it
+    const hasMedia = document.querySelectorAll("video, audio").length > 0;
+    if (hasMedia) {
+      console.warn(
+        `Cannot connect SoundTouch on ${window.location.hostname}:`,
+        error
+      );
+    }
     return false;
   }
 }
