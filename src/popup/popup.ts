@@ -2,6 +2,27 @@ import { A4_STANDARD_FREQUENCY } from "../shared/constants";
 import { Frequency, GlobalState } from "../shared/types";
 import { i18n } from "../i18n/i18n";
 
+// Synchronous theme loading to prevent white flash - MUST be at the top
+(function () {
+  const theme =
+    localStorage.getItem("theme") ||
+    (chrome.storage && chrome.storage.local ? null : "light");
+
+  if (theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+  } else {
+    // Fallback to chrome.storage.local synchronously if possible
+    try {
+      chrome.storage.local.get(["theme"], (result) => {
+        const savedTheme = result.theme || "light";
+        document.documentElement.setAttribute("data-theme", savedTheme);
+      });
+    } catch (e) {
+      document.documentElement.setAttribute("data-theme", "light");
+    }
+  }
+})();
+
 /* ------------------------ VARIABLES --------------------------- */
 
 // Top Control Bar Elements
@@ -12,7 +33,9 @@ const languageMenu = document.getElementById("languageMenu") as HTMLElement;
 const settingsBtn = document.getElementById("settingsBtn") as HTMLButtonElement;
 
 // Disabled overlay
-const disabledOverlay = document.getElementById("disabledOverlay") as HTMLElement;
+const disabledOverlay = document.getElementById(
+  "disabledOverlay"
+) as HTMLElement;
 const appContainer = document.querySelector(".app-container") as HTMLElement;
 
 // Legacy toggle (keeping for compatibility)
@@ -93,6 +116,8 @@ chrome.storage.onChanged.addListener(({ state, theme, language }) => {
   // Handle theme changes
   if (theme?.newValue) {
     document.documentElement.setAttribute("data-theme", theme.newValue);
+    // Sync with localStorage for instant access
+    localStorage.setItem("theme", theme.newValue);
     if (themeToggle) {
       const updateThemeButton = (isDark: boolean) => {
         themeToggle.classList.toggle("active", isDark);
@@ -140,6 +165,8 @@ if (themeToggle) {
     chrome.storage.local.get(["theme"], (result) => {
       const theme = result.theme || "light";
       document.documentElement.setAttribute("data-theme", theme);
+      // Sync with localStorage for instant access
+      localStorage.setItem("theme", theme);
       updateThemeButton(theme === "dark");
     });
   };
@@ -159,6 +186,8 @@ if (themeToggle) {
 
     document.documentElement.setAttribute("data-theme", newTheme);
     chrome.storage.local.set({ theme: newTheme });
+    // Also save to localStorage for instant access
+    localStorage.setItem("theme", newTheme);
     updateThemeButton(newTheme === "dark");
   };
 
@@ -209,7 +238,7 @@ if (languageBtn && languageMenu) {
 if (settingsBtn) {
   settingsBtn.addEventListener("click", () => {
     chrome.tabs.create({
-      url: chrome.runtime.getURL("about.html")
+      url: chrome.runtime.getURL("about.html"),
     });
   });
 }
