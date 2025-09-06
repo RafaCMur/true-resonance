@@ -2,27 +2,7 @@ import { A4_STANDARD_FREQUENCY } from "../shared/constants";
 import { Frequency, GlobalState } from "../shared/types";
 import { i18n } from "../i18n/i18n";
 
-// ======================== THEME INITIALIZATION ========================
-// Synchronous theme loading to prevent white flash - MUST be at the top
-(function () {
-  const theme =
-    localStorage.getItem("theme") || (chrome.storage?.local ? null : "light");
-
-  if (theme) {
-    document.documentElement.setAttribute("data-theme", theme);
-  } else {
-    try {
-      chrome.storage.local.get(["theme"], (result) => {
-        document.documentElement.setAttribute(
-          "data-theme",
-          result.theme || "light"
-        );
-      });
-    } catch {
-      document.documentElement.setAttribute("data-theme", "light");
-    }
-  }
-})();
+// Theme is pre-applied in public/theme-preload.js to avoid flash during first paint
 
 // ======================== DOM ELEMENTS ========================
 const elements = {
@@ -97,9 +77,15 @@ const themeManager = {
   },
 
   init() {
+    // Initialize button state immediately from DOM (theme-preload.js already applied it)
+    const currentTheme =
+      document.documentElement.getAttribute("data-theme") || "light";
+    this.updateButton(currentTheme === "dark");
+
+    // Sync with storage asynchronously
     chrome.storage.local.get(["theme"], (result) => {
       const theme = result.theme || "light";
-      document.documentElement.setAttribute("data-theme", theme);
+      // Theme already applied by theme-preload.js, just sync localStorage and update button
       localStorage.setItem("theme", theme);
       this.updateButton(theme === "dark");
     });
