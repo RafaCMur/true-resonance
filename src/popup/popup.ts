@@ -2,313 +2,260 @@ import { A4_STANDARD_FREQUENCY } from "../shared/constants";
 import { Frequency, GlobalState } from "../shared/types";
 import { i18n } from "../i18n/i18n";
 
+// ======================== THEME INITIALIZATION ========================
 // Synchronous theme loading to prevent white flash - MUST be at the top
 (function () {
   const theme =
-    localStorage.getItem("theme") ||
-    (chrome.storage && chrome.storage.local ? null : "light");
+    localStorage.getItem("theme") || (chrome.storage?.local ? null : "light");
 
   if (theme) {
     document.documentElement.setAttribute("data-theme", theme);
   } else {
-    // Fallback to chrome.storage.local synchronously if possible
     try {
       chrome.storage.local.get(["theme"], (result) => {
-        const savedTheme = result.theme || "light";
-        document.documentElement.setAttribute("data-theme", savedTheme);
+        document.documentElement.setAttribute(
+          "data-theme",
+          result.theme || "light"
+        );
       });
-    } catch (e) {
+    } catch {
       document.documentElement.setAttribute("data-theme", "light");
     }
   }
 })();
 
-/* ------------------------ VARIABLES --------------------------- */
+// ======================== DOM ELEMENTS ========================
+const elements = {
+  // Control bar
+  powerToggle: document.getElementById("powerToggle") as HTMLButtonElement,
+  themeToggle: document.getElementById("themeToggle") as HTMLButtonElement,
+  languageBtn: document.getElementById("languageBtn") as HTMLButtonElement,
+  languageMenu: document.getElementById("languageMenu") as HTMLElement,
+  settingsBtn: document.getElementById("settingsBtn") as HTMLButtonElement,
 
-// Top Control Bar Elements
-const powerToggle = document.getElementById("powerToggle") as HTMLButtonElement;
-const themeToggle = document.getElementById("themeToggle") as HTMLButtonElement;
-const languageBtn = document.getElementById("languageBtn") as HTMLButtonElement;
-const languageMenu = document.getElementById("languageMenu") as HTMLElement;
-const settingsBtn = document.getElementById("settingsBtn") as HTMLButtonElement;
+  // Layout
+  disabledOverlay: document.getElementById("disabledOverlay") as HTMLElement,
+  appContainer: document.querySelector(".app-container") as HTMLElement,
 
-// Disabled overlay
-const disabledOverlay = document.getElementById(
-  "disabledOverlay"
-) as HTMLElement;
-const appContainer = document.querySelector(".app-container") as HTMLElement;
+  // Controls
+  enableToggle: document.getElementById(
+    "enable-extension-toggle"
+  ) as HTMLInputElement,
+  resetButton: document.getElementById("reset-btn") as HTMLButtonElement,
+  pitchModeBtn: document.getElementById("pitch-mode-btn") as HTMLButtonElement,
+  rateModeBtn: document.getElementById("rate-mode-btn") as HTMLButtonElement,
 
-// Legacy toggle (keeping for compatibility)
-const enableToggle = document.getElementById(
-  "enable-extension-toggle"
-) as HTMLInputElement;
-
-const resetButton = document.getElementById("reset-btn") as HTMLButtonElement;
-const pitchModeBtn = document.getElementById(
-  "pitch-mode-btn"
-) as HTMLButtonElement;
-const rateModeBtn = document.getElementById(
-  "rate-mode-btn"
-) as HTMLButtonElement;
-
-let _currentFrequency: Frequency = A4_STANDARD_FREQUENCY;
-
-const presetButtons: Record<432 | 528, HTMLButtonElement | null> = {
-  432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
-  528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
+  // Presets
+  preset432: document.getElementById("pitch-432-btn") as HTMLButtonElement,
+  preset528: document.getElementById("pitch-528-btn") as HTMLButtonElement,
 };
 
-/* ------------------------ FUNCTIONS --------------------------- */
+// ======================== STATE ========================
+let currentFrequency: Frequency = A4_STANDARD_FREQUENCY;
 
-/**
- * Sends a patch to the background script
- * @param patch The patch is an object only with the properties to update
- */
+// ======================== CORE FUNCTIONS ========================
 function sendPatch(patch: Partial<GlobalState>) {
   chrome.runtime.sendMessage({ action: "set", patch });
 }
 
-/** Highlights the button that matches the current frequency */
-function highlightButton(freq: Frequency): void {
-  Object.entries(presetButtons).forEach(([hz, btn]) => {
-    if (btn) btn.classList.toggle("active", Number(hz) === freq);
+function updateUI(state: GlobalState) {
+  const { enabled, mode, frequency } = state;
+
+  // Update overlay and container
+  elements.disabledOverlay?.classList.toggle("show", !enabled);
+  elements.appContainer?.classList.toggle("disabled", !enabled);
+
+  // Update toggles
+  elements.powerToggle?.classList.toggle("active", enabled);
+  if (elements.enableToggle) elements.enableToggle.checked = enabled;
+
+  // Update mode buttons
+  elements.rateModeBtn?.classList.toggle("active", mode === "rate");
+  elements.pitchModeBtn?.classList.toggle("active", mode === "pitch");
+
+  // Update frequency
+  currentFrequency = frequency;
+  elements.preset432?.classList.toggle("active", frequency === 432);
+  elements.preset528?.classList.toggle("active", frequency === 528);
+}
+
+function updateLanguageUI() {
+  document.querySelectorAll("[data-i18n]").forEach((element) => {
+    const key = element.getAttribute("data-i18n");
+    if (key) element.textContent = i18n.t(key);
   });
 }
 
-function paintUI(state?: GlobalState) {
-  if (!state) return;
-
-  // Update disabled overlay and app container state
-  if (disabledOverlay && appContainer) {
-    disabledOverlay.classList.toggle("show", !state.enabled);
-    appContainer.classList.toggle("disabled", !state.enabled);
-  }
-
-  // Update power toggle
-  if (powerToggle) {
-    powerToggle.classList.toggle("active", state.enabled);
-  }
-
-  // Update legacy toggle if it exists
-  if (enableToggle) {
-    enableToggle.checked = state.enabled;
-  }
-
-  if (state.mode === "rate") {
-    rateModeBtn.classList.add("active");
-    pitchModeBtn.classList.remove("active");
-  } else {
-    pitchModeBtn.classList.add("active");
-    rateModeBtn.classList.remove("active");
-  }
-
-  _currentFrequency = state.frequency;
-  highlightButton(state.frequency);
-}
-
-/* ------------------------ EXECUTION --------------------------- */
-
-chrome.storage.local.get("state", ({ state }) => paintUI(state));
-
-chrome.storage.onChanged.addListener(({ state, theme, language }) => {
-  if (state?.newValue) paintUI(state.newValue as GlobalState);
-
-  // Handle theme changes
-  if (theme?.newValue) {
-    document.documentElement.setAttribute("data-theme", theme.newValue);
-    // Sync with localStorage for instant access
-    localStorage.setItem("theme", theme.newValue);
-    if (themeToggle) {
-      const updateThemeButton = (isDark: boolean) => {
-        themeToggle.classList.toggle("active", isDark);
-        const icon = themeToggle.querySelector("img");
-        if (icon) {
-          icon.src = isDark
-            ? "images/theme-dark.svg"
-            : "images/theme-light.svg";
-        }
-      };
-      updateThemeButton(theme.newValue === "dark");
-    }
-  }
-
-  // Handle language changes
-  if (language?.newValue) {
-    i18n.loadLanguage(language.newValue).then(() => {
-      updateUI();
-      // Update language button
-      if (languageBtn) {
-        languageBtn.textContent = language.newValue.toUpperCase();
-      }
-    });
-  }
-});
-
-// Top Control Bar Event Listeners
-
-// Power toggle
-if (powerToggle) {
-  powerToggle.addEventListener("click", () => {
-    const isEnabled = powerToggle.classList.contains("active");
-    if (isEnabled) {
-      sendPatch({ enabled: false });
-    } else {
-      sendPatch({ enabled: true, frequency: _currentFrequency });
-    }
-  });
-}
-
-// Theme toggle
-if (themeToggle) {
-  // Initialize theme
-  const initTheme = () => {
-    chrome.storage.local.get(["theme"], (result) => {
-      const theme = result.theme || "light";
-      document.documentElement.setAttribute("data-theme", theme);
-      // Sync with localStorage for instant access
-      localStorage.setItem("theme", theme);
-      updateThemeButton(theme === "dark");
-    });
-  };
-
-  const updateThemeButton = (isDark: boolean) => {
-    themeToggle.classList.toggle("active", isDark);
-    const icon = themeToggle.querySelector("img");
+// ======================== THEME MANAGEMENT ========================
+const themeManager = {
+  updateButton(isDark: boolean) {
+    elements.themeToggle?.classList.toggle("active", isDark);
+    const icon = elements.themeToggle?.querySelector("img");
     if (icon) {
       icon.src = isDark ? "images/theme-dark.svg" : "images/theme-light.svg";
     }
-  };
+  },
 
-  const toggleTheme = () => {
+  init() {
+    chrome.storage.local.get(["theme"], (result) => {
+      const theme = result.theme || "light";
+      document.documentElement.setAttribute("data-theme", theme);
+      localStorage.setItem("theme", theme);
+      this.updateButton(theme === "dark");
+    });
+  },
+
+  toggle() {
     const isDark =
       document.documentElement.getAttribute("data-theme") === "dark";
     const newTheme = isDark ? "light" : "dark";
 
     document.documentElement.setAttribute("data-theme", newTheme);
     chrome.storage.local.set({ theme: newTheme });
-    // Also save to localStorage for instant access
     localStorage.setItem("theme", newTheme);
-    updateThemeButton(newTheme === "dark");
-  };
+    this.updateButton(newTheme === "dark");
+  },
+};
 
-  initTheme();
-  themeToggle.addEventListener("click", toggleTheme);
-}
+// ======================== LANGUAGE MANAGEMENT ========================
+const languageManager = {
+  async init() {
+    const result = await new Promise<{ language?: string }>((resolve) => {
+      chrome.storage.local.get(["language"], (data) => resolve(data));
+    });
+
+    const currentLang = result.language || "en";
+    await i18n.loadLanguage(currentLang);
+    updateLanguageUI();
+
+    if (elements.languageBtn) {
+      elements.languageBtn.textContent = currentLang.toUpperCase();
+    }
+
+    // Update dropdown selection
+    elements.languageMenu
+      ?.querySelectorAll(".dropdown-item")
+      .forEach((item) => {
+        const lang = (item as HTMLElement).dataset.lang;
+        item.classList.toggle("active", lang === currentLang);
+      });
+  },
+
+  async change(lang: string) {
+    chrome.storage.local.set({ language: lang });
+    await i18n.loadLanguage(lang);
+    updateLanguageUI();
+
+    if (elements.languageBtn) {
+      elements.languageBtn.textContent = lang.toUpperCase();
+    }
+  },
+};
+
+// ======================== STORAGE LISTENERS ========================
+chrome.storage.local.get("state", ({ state }) => {
+  if (state) updateUI(state);
+});
+
+chrome.storage.onChanged.addListener(({ state, theme, language }) => {
+  if (state?.newValue) updateUI(state.newValue as GlobalState);
+
+  if (theme?.newValue) {
+    document.documentElement.setAttribute("data-theme", theme.newValue);
+    localStorage.setItem("theme", theme.newValue);
+    themeManager.updateButton(theme.newValue === "dark");
+  }
+
+  if (language?.newValue) {
+    languageManager.change(language.newValue);
+  }
+});
+
+// ======================== EVENT LISTENERS ========================
+// Power toggle
+elements.powerToggle?.addEventListener("click", () => {
+  const isEnabled = elements.powerToggle.classList.contains("active");
+  sendPatch(
+    isEnabled
+      ? { enabled: false }
+      : { enabled: true, frequency: currentFrequency }
+  );
+});
+
+// Theme toggle
+elements.themeToggle?.addEventListener("click", () => themeManager.toggle());
 
 // Language dropdown
-if (languageBtn && languageMenu) {
-  languageBtn.addEventListener("click", (e) => {
+if (elements.languageBtn && elements.languageMenu) {
+  elements.languageBtn.addEventListener("click", (e) => {
     e.stopPropagation();
-    languageMenu.classList.toggle("show");
+    elements.languageMenu.classList.toggle("show");
   });
 
-  // Close dropdown when clicking outside
   document.addEventListener("click", () => {
-    languageMenu.classList.remove("show");
+    elements.languageMenu.classList.remove("show");
   });
 
-  // Language selection
-  const languageItems = languageMenu.querySelectorAll(".dropdown-item");
-  languageItems.forEach((item) => {
+  elements.languageMenu.querySelectorAll(".dropdown-item").forEach((item) => {
     item.addEventListener("click", async (e) => {
       e.stopPropagation();
       const lang = (item as HTMLElement).dataset.lang;
 
       if (lang) {
-        // Update active state
-        languageItems.forEach((i) => i.classList.remove("active"));
+        // Update UI
+        elements.languageMenu
+          .querySelectorAll(".dropdown-item")
+          .forEach((i) => i.classList.remove("active"));
         item.classList.add("active");
-
-        // Update button text
-        languageBtn.textContent = lang.toUpperCase();
-
-        // Close dropdown
-        languageMenu.classList.remove("show");
+        elements.languageMenu.classList.remove("show");
 
         // Change language
-        chrome.storage.local.set({ language: lang });
-        await i18n.loadLanguage(lang);
-        updateUI();
+        await languageManager.change(lang);
       }
     });
   });
 }
 
 // Settings button
-if (settingsBtn) {
-  settingsBtn.addEventListener("click", () => {
-    chrome.tabs.create({
-      url: chrome.runtime.getURL("about.html"),
-    });
-  });
-}
-
-// Legacy enable/disable toggle (keeping for compatibility)
-if (enableToggle) {
-  enableToggle.addEventListener("change", () => {
-    if (enableToggle.checked) {
-      sendPatch({ enabled: true, frequency: _currentFrequency });
-    } else {
-      sendPatch({ enabled: false });
-    }
-  });
-}
-
-// Preset buttons (432 Hz and 528 Hz)
-Object.entries(presetButtons).forEach(([hz, btn]) => {
-  if (!btn) return;
-
-  btn.addEventListener("click", () => {
-    const freq = Number(hz) as Frequency;
-    _currentFrequency = freq;
-    sendPatch({ frequency: freq });
-  });
+elements.settingsBtn?.addEventListener("click", () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL("about.html") });
 });
 
-// Reset button → back to 440 Hz
-resetButton.addEventListener("click", () =>
-  sendPatch({ frequency: A4_STANDARD_FREQUENCY })
-);
+// Legacy toggle (compatibility)
+elements.enableToggle?.addEventListener("change", () => {
+  const patch = elements.enableToggle.checked
+    ? { enabled: true, frequency: currentFrequency }
+    : { enabled: false };
+  sendPatch(patch);
+});
+
+// Frequency controls
+elements.preset432?.addEventListener("click", () => {
+  currentFrequency = 432;
+  sendPatch({ frequency: 432 });
+});
+
+elements.preset528?.addEventListener("click", () => {
+  currentFrequency = 528;
+  sendPatch({ frequency: 528 });
+});
+
+elements.resetButton?.addEventListener("click", () => {
+  sendPatch({ frequency: A4_STANDARD_FREQUENCY });
+});
 
 // Mode buttons
-rateModeBtn.addEventListener("click", () => sendPatch({ mode: "rate" }));
-pitchModeBtn.addEventListener("click", () => sendPatch({ mode: "pitch" }));
+elements.rateModeBtn?.addEventListener("click", () =>
+  sendPatch({ mode: "rate" })
+);
+elements.pitchModeBtn?.addEventListener("click", () =>
+  sendPatch({ mode: "pitch" })
+);
 
-/* ------------------------ I18N --------------------------- */
-
-// Function to update UI with current language
-function updateUI() {
-  const elements = document.querySelectorAll("[data-i18n]");
-  elements.forEach((element) => {
-    const key = element.getAttribute("data-i18n");
-    if (key) {
-      element.textContent = i18n.t(key);
-    }
-  });
-}
-
-// Initialize language system
-async function initLanguage() {
-  chrome.storage.local.get(["language"], async (result) => {
-    const currentLang = result.language || "en";
-    await i18n.loadLanguage(currentLang);
-    updateUI();
-
-    // Update language button text
-    if (languageBtn) {
-      languageBtn.textContent = currentLang.toUpperCase();
-    }
-
-    // Update language dropdown to show current selection
-    const languageItems = languageMenu?.querySelectorAll(".dropdown-item");
-    languageItems?.forEach((item) => {
-      const lang = (item as HTMLElement).dataset.lang;
-      item.classList.toggle("active", lang === currentLang);
-    });
-  });
-}
-
-// Initialize everything
-initLanguage();
+// ======================== INITIALIZATION ========================
+(async function init() {
+  themeManager.init();
+  await languageManager.init();
+})();
 
 export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)
