@@ -10,6 +10,7 @@
 
 - Problems with syncronization between UI and storage
 - Chrome was showing an error in pages with no video or audio elements
+- Eliminated the flash (flash) of the theme when opening the popup through a preload script.
 
 ## [2.0.0] - 2025-07-24
 
