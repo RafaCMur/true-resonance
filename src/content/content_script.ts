@@ -70,7 +70,7 @@ async function tuneMedia(media: MediaElem): Promise<void> {
     if (connected) {
       // SoundTouch connected successfully
       // Reset playback rate to 1 for non-standard frequencies (432, 528, etc.)
-      if (shouldResetPlaybackRate()) {
+      if (shouldResetPlaybackRate(media.playbackRate)) {
         changePlayBackRate(media, 1);
       }
       enablePitchPreservation(media);
