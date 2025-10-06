@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## [2.1.1] - 2025-10-06
+
+### Added
+
+- Default state initialization on first installation (extension now enabled by default on install)
+- Centralized DEFAULT_STATE constant in background service worker
+
+### Fixed
+
+- Pitch mode now correctly preserves user-set playback speeds (1.25x, 1.5x, etc.) when switching modes
+- Improved playback rate detection to distinguish between extension-set rates (432Hz, 528Hz) and user-set speeds
+- Refactored frequency handling for better scalability when adding new healing frequencies
+
+### Changed
+
+- Optimized state management with better separation of concerns
+
 ## [2.1.0] - 2025-09-05
 
 ### Added
