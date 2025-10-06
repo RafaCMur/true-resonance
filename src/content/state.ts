@@ -46,3 +46,14 @@ export function getState() {
 export function calculatePlaybackRate(): number {
   return _targetFrequency / getReferenceFreq(_targetFrequency);
 }
+
+// Check if current playback rate comes from a non-standard frequency and should be reset to 1 in pitch mode
+export function shouldResetPlaybackRate(): boolean {
+  const nonStandardFrequencies: Frequency[] = [432, 528];
+  const expectedRates = nonStandardFrequencies.map(
+    (freq) => freq / getReferenceFreq(freq)
+  );
+  return expectedRates.some(
+    (rate) => Math.abs(_currentPlaybackRate - rate) < 0.0001
+  );
+}

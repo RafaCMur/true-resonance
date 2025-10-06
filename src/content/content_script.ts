@@ -1,7 +1,4 @@
-import {
-  A4_STANDARD_FREQUENCY,
-  C5_STANDARD_FREQUENCY,
-} from "../shared/constants";
+import { A4_STANDARD_FREQUENCY } from "../shared/constants";
 import { GlobalState, MediaElem } from "../shared/types";
 import {
   changePitch,
@@ -19,6 +16,7 @@ import {
   recalculateFactors,
   setFrequency,
   setMode,
+  shouldResetPlaybackRate,
 } from "./state";
 
 let _extensionEnabled = false; // extension is disabled by default
@@ -71,11 +69,8 @@ async function tuneMedia(media: MediaElem): Promise<void> {
 
     if (connected) {
       // SoundTouch connected successfully
-      const currentRate = getState().currentPlaybackRate;
-      if (
-        currentRate === 432 / A4_STANDARD_FREQUENCY ||
-        currentRate === C5_STANDARD_FREQUENCY / A4_STANDARD_FREQUENCY
-      ) {
+      // Reset playback rate to 1 for non-standard frequencies (432, 528, etc.)
+      if (shouldResetPlaybackRate()) {
         changePlayBackRate(media, 1);
       }
       enablePitchPreservation(media);
