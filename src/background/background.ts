@@ -1,11 +1,13 @@
 import { A4_STANDARD_FREQUENCY } from "../shared/constants";
 import { GlobalState } from "../shared/types";
 
-let state: GlobalState = {
+const DEFAULT_STATE: GlobalState = {
   enabled: false,
   mode: "pitch",
   frequency: A4_STANDARD_FREQUENCY,
 };
+
+let state: GlobalState = { ...DEFAULT_STATE };
 
 // Load any previously persisted values so they survive service-worker restarts
 let _initialized = false;
@@ -23,7 +25,13 @@ function updateBadge(state: GlobalState): void {
 // Initialize state and badge
 function initializeExtension() {
   chrome.storage.local.get("state", (res) => {
-    if (res.state) state = res.state;
+    if (res.state) {
+      state = res.state;
+    } else {
+      // No previous state: set default state
+      state = { ...DEFAULT_STATE };
+      persistState();
+    }
     _initialized = true;
     updateBadge(state);
     // flush any queued patches
