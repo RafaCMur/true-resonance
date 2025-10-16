@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [2.1.2] - 2025-10-16
+
+### Fixed
+
+- The extension was not working in mac os when the browser was in background mode. Fixed by adding "interrupted" state support for AudioContext object.
+
 ## [2.1.1] - 2025-10-06
 
 ### Added

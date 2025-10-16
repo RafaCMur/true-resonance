@@ -1,6 +1,6 @@
 {
   "name": "true-resonance",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Play music in healing frequencies.",
   "main": "index.js",
   "type": "module",
