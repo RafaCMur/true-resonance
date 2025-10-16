@@ -7,6 +7,11 @@ let _isSoundtouchInit = false;
 
 const _sourceMap = new Map<MediaElem, MediaElementAudioSourceNode>();
 
+// Check for both "suspended" (Windows/Linux) and "interrupted" (macOS)
+export function isAudioContextSuspended(ctx: AudioContext): boolean {
+  return ctx.state === "suspended" || (ctx.state as any) === "interrupted";
+}
+
 export function getAudioContext(): AudioContext {
   // If context doesn't exist or was closed by browser, create a fresh one
   if (!_audioCtx || _audioCtx.state === "closed") {
@@ -58,8 +63,7 @@ export async function ensureActiveAudioChain(): Promise<void> {
   try {
     const ctx = getAudioContext();
 
-    // Check for both "suspended" (Windows/Linux) and "interrupted" (macOS)
-    if (ctx.state === "suspended" || (ctx.state as any) === "interrupted") {
+    if (isAudioContextSuspended(ctx)) {
       try {
         await ctx.resume();
       } catch (error) {
@@ -129,7 +133,7 @@ export function changePlayBackRate(media: MediaElem, rate: number): void {
 export async function connectSoundtouch(media: MediaElem): Promise<boolean> {
   try {
     const ctx = getAudioContext();
-    if (ctx.state === "suspended" || (ctx.state as any) === "interrupted") {
+    if (isAudioContextSuspended(ctx)) {
       await ctx.resume();
     }
 
