@@ -15,7 +15,7 @@ export function getAudioContext(): AudioContext {
     if (!hasMedia) {
       throw new Error("No media elements found on page");
     }
-    
+
     try {
       _audioCtx = new AudioContext();
 
@@ -58,7 +58,8 @@ export async function ensureActiveAudioChain(): Promise<void> {
   try {
     const ctx = getAudioContext();
 
-    if (ctx.state === "suspended") {
+    // Check for both "suspended" (Windows/Linux) and "interrupted" (macOS)
+    if (ctx.state === "suspended" || (ctx.state as any) === "interrupted") {
       try {
         await ctx.resume();
       } catch (error) {
