@@ -323,6 +323,40 @@ body {
   letter-spacing: 0.025em;
 }
 
+.upcoming-banner {
+  margin: 0 0 calc(var(--spacing) * 0.9) 0;
+  padding: 0.5rem 1rem;
+  border-radius: 8888px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, #fdba74, #fb923c);
+  border: none;
+  text-align: center;
+  line-height: 1.35;
+  box-shadow: var(--shadow-sm);
+  display: block;
+  text-decoration: none;
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.upcoming-banner-cta {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.upcoming-banner:hover {
+  transform: scale(1.02) translateY(-1px);
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.16);
+}
+
+[data-theme="dark"] .upcoming-banner {
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.7);
+}
+
 .logo {
   width: 2.25rem;
   height: 2.25rem;
