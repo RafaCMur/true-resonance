@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [2.1.3] - 2025-10-16
+
+### Added
+
+- Announcement popup: Coming soon: Android 432 Hz player!
+
 ## [2.1.2] - 2025-10-16
 
 ### Fixed
