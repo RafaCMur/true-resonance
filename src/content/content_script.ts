@@ -20,6 +20,8 @@ import {
 } from "./state";
 
 let _extensionEnabled = false; // extension is disabled by default
+let _tabCaptureActive = false; // true when offscreen document is handling audio
+let _tabCaptureConnecting = false; // prevents concurrent startTabCapture calls
 let _observer: MutationObserver | null;
 let _isObserving = false;
 
@@ -58,31 +60,55 @@ async function tuneMedia(media: MediaElem): Promise<void> {
   await ensureActiveAudioChain();
 
   if (getState().mode === "rate") {
-    // For rate mode, disconnect SoundTouch and just change playback rate
+    if (_tabCaptureActive) {
+      chrome.runtime.sendMessage({ action: "stopTabCapture" });
+      _tabCaptureActive = false;
+    }
     disconnectSoundtouch(media);
     changePitch(1);
     disablePitchPreservation(media);
     changePlayBackRate(media, getState().currentPlaybackRate);
   } else {
-    // Try to connect SoundTouch for pitch mode
-    const connected = await connectSoundtouch(media);
+    // Pitch mode: try offscreen tabCapture first (bypasses CORS on YouTube etc.)
+    if (!_tabCaptureActive && !_tabCaptureConnecting) {
+      _tabCaptureConnecting = true;
+      const response = await chrome.runtime.sendMessage({
+        action: "startTabCapture",
+        pitch: getState().currentPitch,
+      });
+      _tabCaptureConnecting = false;
+      if (response?.success) {
+        _tabCaptureActive = true;
+      }
+    }
 
-    if (connected) {
-      // SoundTouch connected successfully
-      // Reset playback rate to 1 for non-standard frequencies (432, 528, etc.)
+    if (_tabCaptureActive) {
+      // Offscreen document handles all audio; reset playback rate and set pitch there
       if (shouldResetPlaybackRate(media.playbackRate)) {
         changePlayBackRate(media, 1);
       }
       enablePitchPreservation(media);
-      changePitch(getState().currentPitch);
+      chrome.runtime.sendMessage({
+        action: "setTabCapturePitch",
+        value: getState().currentPitch,
+      });
     } else {
-      // SoundTouch failed (probably CORS), fallback to rate mode
-      console.warn(
-        `Pitch mode not available on ${window.location.hostname}, using rate mode instead`
-      );
-      disconnectSoundtouch(media);
-      disablePitchPreservation(media);
-      changePlayBackRate(media, calculatePlaybackRate());
+      // tabCapture unavailable - fall back to direct MediaElementAudioSourceNode (same-origin)
+      const connected = await connectSoundtouch(media);
+      if (connected) {
+        if (shouldResetPlaybackRate(media.playbackRate)) {
+          changePlayBackRate(media, 1);
+        }
+        enablePitchPreservation(media);
+        changePitch(getState().currentPitch);
+      } else {
+        console.warn(
+          `Pitch mode not available on ${window.location.hostname}, using rate mode instead`,
+        );
+        disconnectSoundtouch(media);
+        disablePitchPreservation(media);
+        changePlayBackRate(media, calculatePlaybackRate());
+      }
     }
   }
 }
@@ -181,6 +207,10 @@ function applyState(state: GlobalState): void {
     disconnectAllMedia();
     setFrequency(A4_STANDARD_FREQUENCY);
     resetSoundTouch();
+    if (_tabCaptureActive) {
+      chrome.runtime.sendMessage({ action: "stopTabCapture" });
+      _tabCaptureActive = false;
+    }
   }
 }
 
@@ -206,6 +236,14 @@ chrome.storage.local.get("state", ({ state }) => {
 // Update state when it changes
 chrome.storage.onChanged.addListener(({ state }) => {
   if (state?.newValue) applyState(state.newValue as GlobalState);
+});
+
+// Stop tabCapture if the user navigates away from the page
+window.addEventListener("beforeunload", () => {
+  if (_tabCaptureActive) {
+    chrome.runtime.sendMessage({ action: "stopTabCapture" });
+    _tabCaptureActive = false;
+  }
 });
 
 export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)

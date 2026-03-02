@@ -84,7 +84,7 @@ export function enablePitchPreservation(element: MediaElem): void {
       if (prop in element) {
         (element as any)[prop] = true;
       }
-    }
+    },
   );
 }
 
@@ -95,7 +95,7 @@ export function disablePitchPreservation(element: MediaElem): void {
       if (prop in element) {
         (element as any)[prop] = false;
       }
-    }
+    },
   );
 }
 
@@ -112,7 +112,7 @@ function getSource(media: MediaElem): MediaElementAudioSourceNode {
     } catch (error) {
       console.error("Failed to create MediaElementAudioSourceNode:", error);
       throw new Error(
-        `CORS error: Cannot create audio source for ${window.location.hostname}`
+        `CORS error: Cannot create audio source for ${window.location.hostname}`,
       );
     }
   }
@@ -153,7 +153,7 @@ export async function connectSoundtouch(media: MediaElem): Promise<boolean> {
     if (hasMedia) {
       console.warn(
         `Cannot connect SoundTouch on ${window.location.hostname}:`,
-        error
+        error,
       );
     }
     return false;

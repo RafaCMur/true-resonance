@@ -60,6 +60,13 @@ chrome.tabs.onActivated.addListener(() => {
   }
 });
 
+// Stop tabCapture when the captured tab is closed to clean up the offscreen document
+chrome.tabs.onRemoved.addListener((tabId) => {
+  if (tabId === _capturedTabId) {
+    handleStopTabCapture();
+  }
+});
+
 // Saves the current state to chrome local storage
 function persistState() {
   chrome.storage.local.set({ state });
@@ -72,19 +79,123 @@ function setState(patch: Partial<GlobalState>) {
   updateBadge(state);
 }
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+const OFFSCREEN_URL = chrome.runtime.getURL("offscreen.html");
+let _capturedTabId: number | null = null;
+
+async function ensureOffscreenDocument(): Promise<void> {
+  const contexts = await chrome.runtime.getContexts({
+    contextTypes: [chrome.runtime.ContextType.OFFSCREEN_DOCUMENT],
+    documentUrls: [OFFSCREEN_URL],
+  });
+  if (contexts.length === 0) {
+    await chrome.offscreen.createDocument({
+      url: OFFSCREEN_URL,
+      reasons: [
+        chrome.offscreen.Reason.USER_MEDIA,
+        chrome.offscreen.Reason.AUDIO_PLAYBACK,
+      ],
+      justification:
+        "Process captured tab audio through SoundTouch for pitch shifting",
+    });
+  }
+}
+
+async function handleStartTabCapture(
+  tabId: number,
+  pitch: number,
+): Promise<{ success: boolean }> {
+  try {
+    if (_capturedTabId === tabId) {
+      // Already capturing this tab - just forward the pitch update
+      chrome.runtime.sendMessage({
+        target: "offscreen",
+        action: "setPitch",
+        value: pitch,
+      });
+      return { success: true };
+    }
+
+    if (_capturedTabId !== null) {
+      await handleStopTabCapture();
+    }
+
+    // Get stream ID without consumerTabId so the offscreen document can consume it
+    const streamId = await new Promise<string>((resolve, reject) => {
+      chrome.tabCapture.getMediaStreamId({ targetTabId: tabId }, (id) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(id);
+        }
+      });
+    });
+
+    await ensureOffscreenDocument();
+
+    const result = await new Promise<{ success: boolean }>((resolve) => {
+      chrome.runtime.sendMessage(
+        { target: "offscreen", action: "startCapture", streamId, pitch },
+        (res) => resolve(res ?? { success: false }),
+      );
+    });
+
+    if (result?.success) {
+      _capturedTabId = tabId;
+    }
+    return result;
+  } catch (error: any) {
+    console.error("[True Resonance BG] startTabCapture failed:", error);
+    return { success: false };
+  }
+}
+
+async function handleStopTabCapture(): Promise<void> {
+  _capturedTabId = null;
+  try {
+    chrome.runtime.sendMessage({ target: "offscreen", action: "stopCapture" });
+  } catch (_) {}
+  try {
+    await chrome.offscreen.closeDocument();
+  } catch (_) {}
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.action === "set" && typeof msg.patch === "object") {
     if (!_initialized) {
       _queue.push({ patch: msg.patch });
       sendResponse?.({ queued: true });
-      return;
+      return false;
     }
     setState(msg.patch);
     sendResponse({ ok: true });
-    return;
+    return false;
   }
 
-  // return true; // <-- only keep this if any of the "other handlers" use sendResponse later
+  if (msg.action === "startTabCapture") {
+    const tabId = sender.tab?.id;
+    if (tabId === undefined) {
+      sendResponse({ success: false });
+      return false;
+    }
+    handleStartTabCapture(tabId, msg.pitch).then(sendResponse);
+    return true;
+  }
+
+  if (msg.action === "stopTabCapture") {
+    handleStopTabCapture().then(() => sendResponse({ success: true }));
+    return true;
+  }
+
+  if (msg.action === "setTabCapturePitch") {
+    chrome.runtime.sendMessage({
+      target: "offscreen",
+      action: "setPitch",
+      value: msg.value,
+    });
+    return false;
+  }
+
+  return false;
 });
 
 export {}; // This is to prevent the file from being a module and isolates the variables (errors from typescript)
