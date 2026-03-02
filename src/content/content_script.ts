@@ -1,5 +1,6 @@
 import { A4_STANDARD_FREQUENCY } from "../shared/constants";
 import { GlobalState, MediaElem } from "../shared/types";
+import { i18n } from "../i18n/i18n";
 import {
   changePitch,
   changePlayBackRate,
@@ -124,7 +125,9 @@ async function applyPitchMode(media: MediaElem): Promise<void> {
 
   // Both tabCapture and SoundTouch failed: approximate pitch shift via playback rate
   console.warn(
-    `Pitch mode unavailable on ${window.location.hostname}, falling back to rate mode`,
+    i18n.t("console.pitchModeUnavailable", {
+      hostname: window.location.hostname,
+    }),
   );
   disconnectSoundtouch(media);
   disablePitchPreservation(media);

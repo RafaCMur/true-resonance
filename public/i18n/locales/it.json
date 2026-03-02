@@ -9,5 +9,14 @@
   "donate": "Dona",
   "questions": "Domande?",
   "tooltipPitchOnly": "Cambia solo il tono mantenendo la velocità originale",
-  "tooltipSpeedPitch": "Cambia sia il tono che la velocità di riproduzione"
+  "tooltipSpeedPitch": "Cambia sia il tono che la velocità di riproduzione",
+  "console": {
+    "pitchModeUnavailable": "Modalità tono non disponibile su {hostname}, utilizzo modalità velocità",
+    "corsError": "Errore CORS: Impossibile creare sorgente audio per {hostname}",
+    "captureStarted": "Acquisizione avviata. Stato del contesto: {state}",
+    "captureFailed": "Acquisizione fallita",
+    "captureStopped": "Acquisizione interrotta",
+    "pitchSet": "Tono impostato a: {value}",
+    "tabCaptureStartFailed": "startTabCapture fallito"
+  }
 }

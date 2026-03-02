@@ -9,5 +9,14 @@
   "donate": "Donar",
   "questions": "¿Preguntas?",
   "tooltipPitchOnly": "Cambia solo el tono manteniendo la velocidad original",
-  "tooltipSpeedPitch": "Cambia tanto el tono como la velocidad de reproducción"
+  "tooltipSpeedPitch": "Cambia tanto el tono como la velocidad de reproducción",
+  "console": {
+    "pitchModeUnavailable": "Modo de tono no disponible en {hostname}, usando modo de velocidad",
+    "corsError": "Error CORS: No se puede crear fuente de audio para {hostname}",
+    "captureStarted": "Captura iniciada. Estado del contexto: {state}",
+    "captureFailed": "Captura fallida",
+    "captureStopped": "Captura detenida",
+    "pitchSet": "Tono establecido en: {value}",
+    "tabCaptureStartFailed": "startTabCapture falló"
+  }
 }

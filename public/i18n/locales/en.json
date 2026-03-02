@@ -9,5 +9,14 @@
   "donate": "Donate",
   "questions": "Questions?",
   "tooltipPitchOnly": "Changes only pitch while maintaining original speed",
-  "tooltipSpeedPitch": "Changes both pitch and playback speed"
+  "tooltipSpeedPitch": "Changes both pitch and playback speed",
+  "console": {
+    "pitchModeUnavailable": "Pitch mode unavailable on {hostname}, falling back to rate mode",
+    "corsError": "CORS error: Cannot create audio source for {hostname}",
+    "captureStarted": "Capture started. Context state: {state}",
+    "captureFailed": "Capture failed",
+    "captureStopped": "Capture stopped",
+    "pitchSet": "Pitch set to: {value}",
+    "tabCaptureStartFailed": "startTabCapture failed"
+  }
 }

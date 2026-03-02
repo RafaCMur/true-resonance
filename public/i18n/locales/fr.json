@@ -9,5 +9,14 @@
   "donate": "Faire un don",
   "questions": "Questions ?",
   "tooltipPitchOnly": "Change seulement la hauteur en maintenant la vitesse originale",
-  "tooltipSpeedPitch": "Change à la fois la hauteur et la vitesse de lecture"
+  "tooltipSpeedPitch": "Change à la fois la hauteur et la vitesse de lecture",
+  "console": {
+    "pitchModeUnavailable": "Mode hauteur indisponible sur {hostname}, utilisation du mode vitesse",
+    "corsError": "Erreur CORS : Impossible de créer la source audio pour {hostname}",
+    "captureStarted": "Capture démarrée. État du contexte : {state}",
+    "captureFailed": "Échec de la capture",
+    "captureStopped": "Capture arrêtée",
+    "pitchSet": "Hauteur définie à : {value}",
+    "tabCaptureStartFailed": "startTabCapture a échoué"
+  }
 }

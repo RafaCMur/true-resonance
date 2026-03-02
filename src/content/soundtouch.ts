@@ -1,5 +1,6 @@
 import { WORKLET_PATH } from "../shared/constants";
 import { MediaElem } from "../shared/types";
+import { i18n } from "../i18n/i18n";
 
 let _audioCtx: AudioContext | null = null;
 export let _globalAudioProcessor: AudioWorkletNode | null = null;
@@ -112,7 +113,7 @@ function getSource(media: MediaElem): MediaElementAudioSourceNode {
     } catch (error) {
       console.error("Failed to create MediaElementAudioSourceNode:", error);
       throw new Error(
-        `CORS error: Cannot create audio source for ${window.location.hostname}`,
+        i18n.t("console.corsError", { hostname: window.location.hostname }),
       );
     }
   }
