@@ -16,7 +16,7 @@ const _queue: Array<{ patch: Partial<GlobalState> }> = [];
 function updateBadge(state: GlobalState): void {
   if (state.enabled && state.frequency !== A4_STANDARD_FREQUENCY) {
     chrome.action.setBadgeText({ text: String(state.frequency) });
-    chrome.action.setBadgeBackgroundColor({ color: "#4ade80" });
+    chrome.action.setBadgeBackgroundColor({ color: "#6366f1" });
   } else {
     chrome.action.setBadgeText({ text: "" });
   }
