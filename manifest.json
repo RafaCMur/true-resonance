@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "True Resonance",
-  "version": "2.1.4",
+  "name": "432Hz YouTube Converter - True Resonance | Real-Time Pitch & Frequency Shifter",
+  "version": "2.2.0",
   "description": "Play music in healing frequencies.",
   "author": "RafaCMur",
   "permissions": ["storage", "tabCapture", "offscreen", "tabs"],
