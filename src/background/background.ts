@@ -100,6 +100,11 @@ async function ensureOffscreenDocument(): Promise<void> {
   }
 }
 
+function notifyTabCaptureReset(tabId: number): void {
+  // Tell the content script in that tab its tabCapture was displaced
+  chrome.tabs.sendMessage(tabId, { action: "tabCaptureReset" }).catch(() => {});
+}
+
 async function handleStartTabCapture(
   tabId: number,
   pitch: number,
@@ -116,6 +121,8 @@ async function handleStartTabCapture(
     }
 
     if (_capturedTabId !== null) {
+      // Notify the displaced tab so it can reset its _tabCaptureActive flag
+      notifyTabCaptureReset(_capturedTabId);
       await handleStopTabCapture();
     }
 
@@ -187,11 +194,17 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
 
   if (msg.action === "setTabCapturePitch") {
-    chrome.runtime.sendMessage({
-      target: "offscreen",
-      action: "setPitch",
-      value: msg.value,
-    });
+    const senderTabId = sender.tab?.id;
+    chrome.runtime.sendMessage(
+      { target: "offscreen", action: "setPitch", value: msg.value },
+      () => {
+        // If the offscreen is gone, lastError fires and _capturedTabId is now stale
+        if (chrome.runtime.lastError && senderTabId !== undefined) {
+          _capturedTabId = null;
+          notifyTabCaptureReset(senderTabId);
+        }
+      },
+    );
     return false;
   }
 

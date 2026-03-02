@@ -4,7 +4,7 @@
   "version": "2.1.4",
   "description": "Play music in healing frequencies.",
   "author": "RafaCMur",
-  "permissions": ["storage", "tabCapture", "offscreen"],
+  "permissions": ["storage", "tabCapture", "offscreen", "tabs"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
